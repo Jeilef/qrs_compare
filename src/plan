@@ -1,0 +1,3 @@
+docker run --name="<some_seed>" -v C:/Users/Justus/Projects/qrs_compare/test/data/test.sh:/work/test.sh ubuntu bash /work/test.sh
+docker cp <some_seed>:/path/to/results_folder /path/to/target_results_folder
+docker rm <some_seed>
