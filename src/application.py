@@ -2,9 +2,12 @@ import os
 from flask import Flask, render_template, flash, request, redirect, url_for, send_from_directory
 from werkzeug.utils import secure_filename
 
-if not os.path.exists("uploaded_data"):
-    os.mkdir("uploaded_data")
-UPLOAD_FOLDER = "uploaded_data"
+from docker_evaluation import setup_docker
+
+UPLOAD_FOLDER = "algorithms"
+if not os.path.exists(UPLOAD_FOLDER):
+    os.mkdir(UPLOAD_FOLDER)
+
 ALLOWED_EXTENSIONS = {'zip'}
 
 app = Flask(__name__)
@@ -16,7 +19,7 @@ def allowed_file(filename):
 
 
 @app.route('/', methods=['GET', 'POST'])
-def hello_world(name=None):
+def root(name=None):
     if request.method == 'POST':
         if 'file' not in request.files:
             flash('No file part')
@@ -27,7 +30,13 @@ def hello_world(name=None):
             return redirect(request.url)
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            subdir = filename.rsplit('.')[0]
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], subdir)
+            if not os.path.exists(file_path):
+                os.mkdir(file_path)
+            file.save(os.path.join(file_path, filename))
+            setup_msg = setup_docker(file_path, filename)
+            print(setup_msg)
             return redirect(url_for('uploaded_file', filename=filename))
 
     return render_template('root.html', name=name)
