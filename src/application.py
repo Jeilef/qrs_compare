@@ -1,8 +1,9 @@
 import os
-from flask import Flask, render_template, flash, request, redirect, url_for, send_from_directory
+from flask import Flask, render_template, flash, request, redirect, url_for, Blueprint
 from werkzeug.utils import secure_filename
 
-from docker_evaluation import setup_docker
+from algorithm_evaluation import evaluate_algorithm
+from docker_execution import setup_docker
 
 UPLOAD_FOLDER = "algorithms"
 if not os.path.exists(UPLOAD_FOLDER):
@@ -36,6 +37,7 @@ def root(name=None):
                 os.mkdir(file_path)
             file.save(os.path.join(file_path, filename))
             setup_msg = setup_docker(file_path, filename)
+            evaluate_algorithm(subdir)
             print(setup_msg)
             return redirect(url_for('uploaded_file', filename=filename))
 

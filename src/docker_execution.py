@@ -15,8 +15,8 @@ def setup_docker(folder_path, zip_file_name):
     :return:
     """
     alg_dir = os.path.abspath(os.path.join(folder_path, "alg"))
-    if not os.path.exists(alg_dir):
-        os.mkdir(alg_dir)
+
+    os.makedirs(alg_dir, exist_ok=True)
     with zipfile.ZipFile(os.path.join(folder_path, zip_file_name), 'r') as zip_ref:
         zip_ref.extractall(alg_dir)
 
@@ -28,15 +28,7 @@ def setup_docker(folder_path, zip_file_name):
             setup_file_path = os.path.join(alg_dir, zip_file_name.rsplit(".")[0], "setup.sh")
             alg_dir = os.path.abspath(os.path.join(alg_dir, zip_file_name.rsplit(".")[0]))
 
-    with open(setup_file_path, 'r+') as setup_file:
-        contents = setup_file.readlines()
-
-    contents = ["apt update && apt upgrade -y\n cd /alg\n"] + contents
-    with open(setup_file_path, 'w') as setup_file:
-        setup_file.writelines(contents)
-
-    with open(setup_file_path, "r") as sf:
-        print(sf.readlines())
+    prepare_setup_for_execution_in_docker(setup_file_path)
 
     docker_name = datetime.datetime.now().microsecond
     input_data_path = os.path.abspath(os.path.join(folder_path, "data", "in"))
@@ -47,20 +39,42 @@ def setup_docker(folder_path, zip_file_name):
     os.makedirs(gt_data_path, exist_ok=True)
     os.makedirs(result_folder_path, exist_ok=True)
 
+    execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path)
+
+    extract_predictions(docker_name, result_folder_path)
+    p = subprocess.run(["docker", "rm", str(docker_name)], check=True)
+    print(p.returncode)
+    return "Fine."
+
+
+def extract_predictions(docker_name, result_folder_path):
+    p = subprocess.run(["docker", "cp", str(docker_name) + ":/data", result_folder_path], check=True)
+    print(p.returncode, p)
+    for filename in os.listdir(os.path.join(result_folder_path, "data")):
+        if '.' in filename and filename.rsplit('.')[1] == "atr":
+            shutil.copy2(os.path.join(result_folder_path, "data", filename), os.path.join(result_folder_path))
+
+
+def prepare_setup_for_execution_in_docker(setup_file_path):
+    with open(setup_file_path, 'r+') as setup_file:
+        contents = setup_file.readlines()
+    contents = ["apt update && apt upgrade -y\n cd /alg\n"] + contents
+    with open(setup_file_path, 'w') as setup_file:
+        setup_file.writelines(contents)
+    with open(setup_file_path, "r") as sf:
+        print(sf.readlines())
+
+
+def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path):
     setup_evaluation_data(input_data_path, gt_data_path)
     subprocess.run(["systemctl", "--user", "start", "docker"], check=True)
     start_docker = ["docker", "run", "--name={}".format(docker_name), "--network", "host",
                     "-v", "{}:/alg".format(alg_dir),
                     "-v", "{}:/data".format(input_data_path),
-                    "ubuntu", "bash", "/alg/setup.sh",]
+                    "ubuntu", "bash", "/alg/setup.sh", ]
     print("preparation complete. starting docker with: ", " ".join(start_docker))
     p = subprocess.run(start_docker, check=True)
-    print(p.returncode, p.stdout)
-    p = subprocess.run(["docker", "cp", str(docker_name) + ":/data", result_folder_path], check=True)
-    print(p.returncode, p.stdout)
-    p = subprocess.run(["docker", "rm", str(docker_name)], check=True)
-    print(p.returncode, p.stdout)
-    return "Fine."
+    print(p.returncode)
 
 
 def setup_evaluation_data(data_folder_path, ann_data_path):
