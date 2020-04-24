@@ -1,8 +1,8 @@
 import wfdb
 from wfdb import processing
 
-DATA_PATH = "/data"
-SAVE_PATH = "/data"
+DATA_PATH = "/data/"
+SAVE_PATH = "/data/"
 
 with open(DATA_PATH + "RECORDS", 'r') as f:
     records = f.readlines()
