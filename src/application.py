@@ -1,8 +1,10 @@
+import json
 import os
-from flask import Flask, render_template, flash, request, redirect, url_for, Blueprint
+from flask import Flask, render_template, flash, request, redirect, url_for, Blueprint, jsonify
 from werkzeug.utils import secure_filename
 
-from algorithm_evaluation import evaluate_algorithm
+from algorithm_evaluation import evaluate_algorithm, read_evaluated_algorithms
+from algorithm_store import AlgorithmStore
 from docker_execution import setup_docker
 
 UPLOAD_FOLDER = "algorithms"
@@ -20,7 +22,7 @@ def allowed_file(filename):
 
 
 @app.route('/', methods=['GET', 'POST'])
-def root(name=None):
+def root(metrics=None):
     if request.method == 'POST':
         if 'file' not in request.files:
             flash('No file part')
@@ -30,18 +32,15 @@ def root(name=None):
             flash('No selected file')
             return redirect(request.url)
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            subdir = filename.rsplit('.')[0]
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], subdir)
-            if not os.path.exists(file_path):
-                os.mkdir(file_path)
-            file.save(os.path.join(file_path, filename))
-            setup_msg = setup_docker(file_path, filename)
-            evaluate_algorithm(subdir)
-            print(setup_msg)
-            return redirect(url_for('uploaded_file', filename=filename))
+            alg_store = AlgorithmStore(file, app.config['UPLOAD_FOLDER'])
 
-    return render_template('root.html', name=name)
+            setup_msg = setup_docker(alg_store)
+            evaluate_algorithm(alg_store)
+            print(setup_msg)
+            return redirect(url_for('uploaded_file', filename="filename"))
+    ms = read_evaluated_algorithms()
+    print(ms)
+    return render_template('root.html', metrics=json.dumps(ms).replace("'", '"'))
 
 
 @app.route('/uploads/<filename>')

@@ -1,47 +1,22 @@
-import errno
-import os
 import datetime
-import subprocess
-import zipfile
+import os
 import shutil
+import subprocess
 
 
-def setup_docker(folder_path, zip_file_name):
+def setup_docker(alg_store):
     """
     A zip file is expected to contain a setup.sh which prepares the VM for code execution. One can assume that
-    apt update && apt upgrade has already been done.
-    :param folder_path: folder path of the uploaded zip file
-    :param zip_file_name: name of the zip file
     :return:
     """
-    alg_dir = os.path.abspath(os.path.join(folder_path, "alg"))
 
-    os.makedirs(alg_dir, exist_ok=True)
-    with zipfile.ZipFile(os.path.join(folder_path, zip_file_name), 'r') as zip_ref:
-        zip_ref.extractall(alg_dir)
-
-    setup_file_path = os.path.join(alg_dir, "setup.sh")
-    if not os.path.exists(setup_file_path):
-        if not os.path.join(alg_dir, zip_file_name.rsplit(".")[0], "setup.sh"):
-            return "Setup.sh missing. Cannot setup container."
-        else:
-            setup_file_path = os.path.join(alg_dir, zip_file_name.rsplit(".")[0], "setup.sh")
-            alg_dir = os.path.abspath(os.path.join(alg_dir, zip_file_name.rsplit(".")[0]))
-
-    prepare_setup_for_execution_in_docker(setup_file_path)
+    prepare_setup_for_execution_in_docker(alg_store.setup_file_path())
 
     docker_name = datetime.datetime.now().microsecond
-    input_data_path = os.path.abspath(os.path.join(folder_path, "data", "in"))
-    gt_data_path = os.path.join(folder_path, "data", "gt")
-    result_folder_path = os.path.join(folder_path, "data", "pred")
 
-    os.makedirs(input_data_path, exist_ok=True)
-    os.makedirs(gt_data_path, exist_ok=True)
-    os.makedirs(result_folder_path, exist_ok=True)
+    execute_algorithm(alg_store.algorithm_dir(), docker_name, alg_store.groundtruth_dir(), alg_store.input_dir())
 
-    execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path)
-
-    extract_predictions(docker_name, result_folder_path)
+    extract_predictions(docker_name, alg_store.prediction_dir())
     p = subprocess.run(["docker", "rm", str(docker_name)], check=True)
     print(p.returncode)
     return "Fine."
@@ -67,7 +42,7 @@ def prepare_setup_for_execution_in_docker(setup_file_path):
 
 def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path):
     setup_evaluation_data(input_data_path, gt_data_path)
-    subprocess.run(["systemctl", "--user", "start", "docker"], check=True)
+    p = subprocess.run(["systemctl", "--user", "start", "docker"], check=True)
     start_docker = ["docker", "run", "--name={}".format(docker_name), "--network", "host",
                     "-v", "{}:/alg".format(alg_dir),
                     "-v", "{}:/data".format(input_data_path),
