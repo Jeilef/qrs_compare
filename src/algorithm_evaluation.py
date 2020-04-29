@@ -2,7 +2,8 @@ import json
 import os
 from wfdb import rdann
 
-from metric import PositivePredictiveValue, Sensitivity
+from classification_metric import PositivePredictiveValue, Sensitivity, F1
+from metric import MeanSquaredError, MeanAbsoluteError
 
 
 def read_evaluated_algorithms():
@@ -17,26 +18,24 @@ def read_evaluated_algorithms():
 
 def evaluate_algorithm(alg_store):
     print("Evaluating...")
-    min_tp, max_fp, max_fn = 100, 100, 100
+    acc_metrics = [PositivePredictiveValue(), Sensitivity(), F1(), MeanSquaredError(), MeanAbsoluteError()]
     for ann_file in os.listdir(alg_store.groundtruth_dir()):
         pred_ann_file = os.path.join(alg_store.prediction_dir(), ann_file.rsplit('.')[0])
         gt_ann_file = os.path.join(alg_store.groundtruth_dir(), ann_file.rsplit('.')[0])
         if os.path.exists(pred_ann_file + "." + ann_file.rsplit('.')[1]):
-            pred_ann_ref = rdann(pred_ann_file, 'atr')
-            gt_ann_ref = rdann(gt_ann_file, 'atr')
-            tp, fp, tn = compare_annotations(gt_ann_ref, pred_ann_ref)
-            min_tp = min(min_tp, tp)
-            max_fp = max(max_fp, fp)
-            max_fn = max(max_fn, tn)
+            for metric in acc_metrics:
+                pred_ann_ref = rdann(pred_ann_file, 'atr')
+                gt_ann_ref = rdann(gt_ann_file, 'atr')
+                metric.match_annotations(gt_ann_ref.sample, gt_ann_ref.symbol, pred_ann_ref.sample)
+
+    convert_metrics_to_json(alg_store, acc_metrics)
+
+
+def convert_metrics_to_json(alg_store, acc_metrics):
+    json_dict = {"Name": alg_store.alg_name}
+    for metric in acc_metrics:
+        json_dict[metric.__abbrev__] = metric.compute()
 
     with open(os.path.join(alg_store.evaluation_dir(), "metrics.json"), "w") as metrics_file:
-        metrics_file.write(json.dumps({"name": alg_store.alg_name, "tp": min_tp, "fp": max_fp, "fn": max_fn}))
+        metrics_file.write(json.dumps(json_dict))
 
-
-def compare_annotations(gt_annotations, pred_annotations):
-    gt_samples = gt_annotations.sample
-    pred_samples = pred_annotations.sample
-    ppv = PositivePredictiveValue().match_annotations(gt_samples, gt_annotations.symbol, pred_samples, 36)
-    sens = Sensitivity().match_annotations(gt_samples, gt_annotations.symbol, pred_samples, 36)
-    print(ppv, sens)
-    return ppv, sens, 0

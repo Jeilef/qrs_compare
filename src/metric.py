@@ -1,5 +1,5 @@
 class Metric:
-    def match_annotations(self, true_samples, true_symbols, test_samples, tolerance):
+    def match_annotations(self, true_samples, true_symbols, test_samples):
         """Tries to match two lists of (supposed) QRS positions.
 
         Args:
@@ -19,73 +19,34 @@ class Metric:
         raise NotImplementedError
 
 
-class ClassificationMetric(Metric):
+class RegressionMetric:
     def __init__(self):
-        self.fn = []
-        self.fp = []
-        self.tp = []
+        self.distance_to_true = []
 
-    def match_annotations(self, true_samples, true_symbols, test_samples, tolerance):
-        """Tries to match two lists of (supposed) QRS positions.
+    def match_annotations(self, true_samples, true_symbols, test_samples):
 
-        Args:
-            true_samples: List of samples representing the actual QRS positions.
-            true_symbols: Annotation symbols for the samples in true_samples.
-            test_samples: List of samples representing the detected QRS positions.
-            tolerance: Maximum allowed distance between actual and detected QRS
-                position.
-
-        Returns:
-            Tuple (tp, fp, fn) whereas tp is a list of true positives characterized
-            as tripel (true_sample, test_sample, symbol), fp is a list of false
-            positives characterized as tuple (test_sample, symbol?), and fn is a
-            list of false negatives characterized as list of tuples (true_sample,
-            symbol).
-        """
-
-        tp, fp, fn = [], [], []
-
-        for true_sample, true_symbol in zip(true_samples, true_symbols):
-            matches = [test_sample
-                       for test_sample in test_samples
-                       if abs(test_sample - true_sample) <= tolerance]
-            matches.sort(key=lambda m: abs(m - true_sample))
-            if len(matches) == 0:
-                fn.append((true_sample, true_symbol))
-            if len(matches) > 0:
-                tp.append((true_sample, matches[0], true_symbol))
-            if len(matches) > 1:
-                fp.extend([(match, true_symbol) for match in matches[1:]])
-
-        for test_sample in test_samples:
-            matches = [true_sample
-                       for true_sample in true_samples
-                       if abs(true_sample - test_sample) <= tolerance]
-            if len(matches) == 0:
-                fp.append((test_sample, ''))
-
-        self.fn = fn
-        self.fp = fp
-        self.tp = tp
-        return tp, fp, fn
+        idx = 0
+        last_complex = true_samples[-1]
+        next_complex = true_samples[0]
+        for ts in test_samples:
+            if abs(last_complex - ts) <= abs(next_complex - ts):
+                self.distance_to_true.append(abs(last_complex - ts))
+            else:
+                self.distance_to_true.append(abs(next_complex - ts))
+                last_complex = next_complex
+                idx += 1 if idx < len(true_samples) else 0
+                next_complex = true_samples[idx]
+        return self.compute()
 
     def compute(self):
         raise NotImplementedError
 
 
-class PositivePredictiveValue(ClassificationMetric):
-    def match_annotations(self, true_samples, true_symbols, test_samples, tolerance):
-        super().match_annotations(true_samples, true_symbols, test_samples, tolerance)
-        return self.compute()
-
+class MeanSquaredError(RegressionMetric):
     def compute(self):
-        return len(self.tp) / (len(self.fp) + len(self.tp))
+        return sum(map(lambda x: x**2, self.distance_to_true))/len(self.distance_to_true)
 
 
-class Sensitivity(ClassificationMetric):
-    def match_annotations(self, true_samples, true_symbols, test_samples, tolerance):
-        super().match_annotations(true_samples, true_symbols, test_samples, tolerance)
-        return self.compute()
-
+class MeanAbsoluteError(RegressionMetric):
     def compute(self):
-        return len(self.tp) / (len(self.fn) + len(self.tp))
+        return sum(self.distance_to_true)(len(self.distance_to_true))

@@ -42,7 +42,8 @@ def prepare_setup_for_execution_in_docker(setup_file_path):
 
 def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path):
     setup_evaluation_data(input_data_path, gt_data_path)
-    p = subprocess.run(["systemctl", "--user", "start", "docker"], check=True)
+    rt = subprocess.run(["systemctl", "--user", "start", "docker"], check=True).returncode
+    print("Docker deamon start exited with: ", rt)
     start_docker = ["docker", "run", "--name={}".format(docker_name), "--network", "host",
                     "-v", "{}:/alg".format(alg_dir),
                     "-v", "{}:/data".format(input_data_path),

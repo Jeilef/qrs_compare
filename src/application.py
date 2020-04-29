@@ -15,6 +15,7 @@ ALLOWED_EXTENSIONS = {'zip'}
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.secret_key = b'sj8345(Z)5%(HQ(O'
 
 
 def allowed_file(filename):
@@ -37,7 +38,7 @@ def root(metrics=None):
             setup_msg = setup_docker(alg_store)
             evaluate_algorithm(alg_store)
             print(setup_msg)
-            return redirect(url_for('uploaded_file', filename="filename"))
+            # return redirect(url_for('uploaded_file', filename="filename"))
     ms = read_evaluated_algorithms()
     print(ms)
     return render_template('root.html', metrics=json.dumps(ms).replace("'", '"'))

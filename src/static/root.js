@@ -20,12 +20,7 @@ $(document).ready( function () {
     for(const metric_line in $metric){
         if($metric.hasOwnProperty(metric_line)){
             const m_line = $metric[metric_line];
-            tab.row.add([
-            m_line.name,
-            m_line.tp,
-            m_line.fp,
-            m_line.fn
-            ]).draw(false);
+            tab.row.add(Object.values(m_line)).draw(false);
         }
     }
 } );
