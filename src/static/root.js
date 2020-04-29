@@ -12,15 +12,25 @@ $(document).ready( function () {
     title_cols.forEach(function (x) {
         titles.push({"title": x});
     })
-    console.log(titles)
     const tab = $('#results-table').DataTable({
         "data": [],
         "columns": titles
     });
     for(const metric_line in $metric){
         if($metric.hasOwnProperty(metric_line)){
-            const m_line = $metric[metric_line];
-            tab.row.add(Object.values(m_line)).draw(false);
+            var m_line = $metric[metric_line];
+            var vals = Object.values(m_line);
+            var rounded_vals = vals.map(function (x) {
+                 if(typeof(x) === "number"){
+                     return x.toFixed(6);
+                 }else{
+                     return x;
+                 }
+            });
+            while(rounded_vals.length < title_cols.length){
+                rounded_vals.add(-1)
+            }
+            tab.row.add(rounded_vals).draw(false);
         }
     }
 } );

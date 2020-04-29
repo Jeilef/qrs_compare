@@ -3,7 +3,7 @@ import os
 from wfdb import rdann
 
 from classification_metric import PositivePredictiveValue, Sensitivity, F1
-from metric import MeanSquaredError, MeanAbsoluteError
+from metric import MeanSquaredError, MeanAbsoluteError, MeanError
 
 
 def read_evaluated_algorithms():
@@ -18,7 +18,7 @@ def read_evaluated_algorithms():
 
 def evaluate_algorithm(alg_store):
     print("Evaluating...")
-    acc_metrics = [PositivePredictiveValue(), Sensitivity(), F1(), MeanSquaredError(), MeanAbsoluteError()]
+    acc_metrics = [PositivePredictiveValue(), Sensitivity(), F1(), MeanSquaredError(), MeanAbsoluteError(), MeanError()]
     for ann_file in os.listdir(alg_store.groundtruth_dir()):
         pred_ann_file = os.path.join(alg_store.prediction_dir(), ann_file.rsplit('.')[0])
         gt_ann_file = os.path.join(alg_store.groundtruth_dir(), ann_file.rsplit('.')[0])

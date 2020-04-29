@@ -1,4 +1,5 @@
 class Metric:
+    __abbrev__ = ''
     def match_annotations(self, true_samples, true_symbols, test_samples):
         """Tries to match two lists of (supposed) QRS positions.
 
@@ -25,16 +26,16 @@ class RegressionMetric:
 
     def match_annotations(self, true_samples, true_symbols, test_samples):
 
-        idx = 0
-        last_complex = true_samples[-1]
-        next_complex = true_samples[0]
+        idx = 1
+        last_complex = true_samples[0]
+        next_complex = true_samples[1]
         for ts in test_samples:
             if abs(last_complex - ts) <= abs(next_complex - ts):
-                self.distance_to_true.append(abs(last_complex - ts))
+                self.distance_to_true.append(ts - last_complex)
             else:
-                self.distance_to_true.append(abs(next_complex - ts))
+                self.distance_to_true.append(ts - next_complex)
                 last_complex = next_complex
-                idx += 1 if idx < len(true_samples) else 0
+                idx += 1 if idx < len(true_samples) - 1 else 0
                 next_complex = true_samples[idx]
         return self.compute()
 
@@ -43,10 +44,21 @@ class RegressionMetric:
 
 
 class MeanSquaredError(RegressionMetric):
+    __abbrev__ = 'MSE'
+
     def compute(self):
         return sum(map(lambda x: x**2, self.distance_to_true))/len(self.distance_to_true)
 
 
 class MeanAbsoluteError(RegressionMetric):
+    __abbrev__ = 'MAE'
+
     def compute(self):
-        return sum(self.distance_to_true)(len(self.distance_to_true))
+        return sum(map(lambda x: abs(x), self.distance_to_true))/(len(self.distance_to_true))
+
+
+class MeanError(RegressionMetric):
+    __abbrev__ = 'ME'
+
+    def compute(self):
+        return sum(self.distance_to_true)/len(self.distance_to_true)
