@@ -1,5 +1,5 @@
-from metric import Metric
-
+from metrics.metric import Metric
+from bisect import bisect_right
 
 class ClassificationMetric(Metric):
     def __init__(self, tolerance=36):
@@ -90,4 +90,79 @@ class F1(ClassificationMetric):
         return self.compute()
 
     def compute(self):
-        return 2 * len(self.tp)/(2 * len(self.tp) + len(self.fn) * len(self.fp))
+        return 2 * len(self.tp)/(2 * len(self.tp) + len(self.fn) + len(self.fp))
+
+
+class RoCCurve(ClassificationMetric):
+    __abbrev__ = "RoC"
+
+    def __init__(self, sample_rate=360):
+        super().__init__()
+        self.sample_rate = sample_rate
+        self.tp_by_tol = [[] for _ in range(1, self.sample_rate, 10)]
+        self.fp_by_tol = [[] for _ in range(1, self.sample_rate, 10)]
+        self.tn_by_tol = [[] for _ in range(1, self.sample_rate, 10)]
+        self.fn_by_tol = [[] for _ in range(1, self.sample_rate, 10)]
+        self.tn = []
+
+    def match_annotations(self, true_samples, true_symbols, test_samples):
+        for tol in range(1, self.sample_rate, 10):
+            self.tp = self.tp_by_tol[tol // 10]
+            self.fp = self.fp_by_tol[tol // 10]
+            self.tn = self.tn_by_tol[tol // 10]
+            self.fn = self.fn_by_tol[tol // 10]
+            self.match_classification_annotations(true_samples, true_symbols, test_samples, tol)
+            self.tp_by_tol[tol // 10] = self.tp
+            self.fp_by_tol[tol // 10] = self.fp
+            self.tn_by_tol[tol // 10] = self.tn
+            self.fn_by_tol[tol // 10] = self.fn
+        return self.compute()
+
+    def match_classification_annotations(self, true_samples, true_symbols, test_samples, tolerance):
+        interval_start = 0
+        interval_end = tolerance
+        true_idx = 0
+        true_queue = []
+        test_idx = 0
+        test_queue = []
+        while true_samples[true_idx] <= interval_end:
+            true_queue.append(true_idx)
+            true_idx += 1
+
+        while test_samples[test_idx] <= interval_end:
+            test_queue.append(test_idx)
+            test_idx += 1
+
+        while interval_end < max(true_samples[-1], test_samples[-1]):
+            len_test = len(test_queue)
+            len_true = len(true_queue)
+            if len_test == len_true and len_true > 0:
+                self.tp.append(interval_start)
+            if len_test > len_true:
+                self.fp.append(interval_start)
+            if len_test < len_true:
+                self.fn.append(interval_start)
+            if len_test == 0 == len_true:
+                self.tn.append(interval_start)
+
+            interval_start += 1
+            interval_end += 1
+            if len(true_queue) > 0 and true_samples[true_queue[0]] < interval_start:
+                true_queue.pop(0)
+            if len(test_queue) > 0 and test_samples[test_queue[0]] < interval_start:
+                test_queue.pop(0)
+            if true_idx < len(true_samples) and true_samples[true_idx] <= interval_end:
+                true_queue.append(true_idx)
+                true_idx += 1
+            if test_idx < len(test_samples) and test_samples[test_idx] <= interval_end:
+                test_queue.append(test_idx)
+                test_idx += 1
+
+    def compute(self):
+        metrics_per_tol = []
+        for tp, fp, tn, fn in zip(self.tp_by_tol, self.fp_by_tol, self.tn_by_tol, self.fn_by_tol):
+            metrics_per_tol.append(self.ppv_fpr(len(tp), len(fp), len(tn), len(fn)))
+        return metrics_per_tol
+
+    def ppv_fpr(self, tp, fp, tn, fn):
+        return tp/(tp + fn), fp/(fp + tn)

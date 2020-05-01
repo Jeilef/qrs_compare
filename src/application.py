@@ -33,7 +33,7 @@ def root(metrics=None):
             flash('No selected file')
             return redirect(request.url)
         if file and allowed_file(file.filename):
-            alg_store = AlgorithmStore(file, app.config['UPLOAD_FOLDER'])
+            alg_store = AlgorithmStore.for_new_alg(file, app.config['UPLOAD_FOLDER'])
 
             setup_msg = setup_docker(alg_store)
             evaluate_algorithm(alg_store)
@@ -47,3 +47,13 @@ def root(metrics=None):
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return "upload successful of " + filename
+
+
+@app.route('/reeval')
+def reeval(metrics=None):
+    alg_stores = AlgorithmStore.for_all_existing(app.config['UPLOAD_FOLDER'])
+    for alg_store in alg_stores:
+        evaluate_algorithm(alg_store)
+    ms = read_evaluated_algorithms()
+    print(ms)
+    return render_template('root.html', metrics=json.dumps(ms).replace("'", '"'))

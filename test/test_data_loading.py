@@ -3,6 +3,8 @@ from os import listdir
 
 import wfdb
 from wfdb import processing
+from ecgdetectors import Detectors
+import numpy as np
 
 
 class TestLoadingData(unittest.TestCase):
@@ -48,6 +50,19 @@ class TestLoadingData(unittest.TestCase):
         wfdb.wrann("100", 'atr', res, write_dir="data", symbol=(['N']*len(res)))
         print(res)
         self.assertIsNotNone(res)
+
+    def test_ecg_detectors_package(self):
+        for i in range(100, 300):
+            try:
+                record_name = self.mitdb + str(i)
+                sig, fields = wfdb.rdsamp(record_name, channels=[0])
+                detectors = Detectors(fields['fs'])
+                r_peaks = detectors.pan_tompkins_detector(sig[:, 0])
+                samples = np.array(r_peaks)
+                wfdb.wrann(str(i), 'atr', sample=samples, write_dir="data/ann", symbol=(['N'] * len(r_peaks)))
+                print(i)
+            except Exception as e:
+                print(i, e)
 
 
 if __name__ == '__main__':

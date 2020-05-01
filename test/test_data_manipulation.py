@@ -22,7 +22,7 @@ class TestManipData(unittest.TestCase):
         record_read.wrsamp(write_dir='data/samples/', expanded=False)
 
     def test_manip_save_record(self):
-        record_name = self.mitdb + '100'
+        record_name = self.mitdb + '102'
         record_read = wfdb.rdrecord(record_name, physical=False)
         record_read.d_signal += 1
         record_read.wrsamp(write_dir='data/samples/', expanded=False)

@@ -8,18 +8,31 @@ from werkzeug.utils import secure_filename
 class AlgorithmStore:
     __base_path__ = os.path.abspath("algorithms")
 
-    def __init__(self, zip_file, base_path=__base_path__):
+    def __init__(self, alg_name, base_path=__base_path__):
         """
         :param alg_name: name of the algorithm
         """
-        filename = secure_filename(zip_file.filename)
-        alg_name = filename.rsplit('.')[0]
+
         self.alg_name = alg_name
         self.__base_path__ = os.path.abspath(base_path)
-        self.create_hierarchy()
-        zip_file.save(os.path.join(self.root_path(), filename))
-        self.extract_alg()
-        self.check_for_setup_file()
+
+    @classmethod
+    def for_new_alg(cls, zip_file, base_path=__base_path__):
+        filename = secure_filename(zip_file.filename)
+        alg_name = filename.rsplit('.')[0]
+        alg_store = cls(alg_name, base_path)
+        alg_store.create_hierarchy()
+        zip_file.save(os.path.join(alg_store.root_path(), filename))
+        alg_store.extract_alg()
+        alg_store.check_for_setup_file()
+        return alg_store
+
+    @classmethod
+    def for_all_existing(cls, base_path=__base_path__):
+        alg_stores = []
+        for alg_dir in os.listdir(base_path):
+            alg_stores.append(cls(alg_dir, base_path))
+        return alg_stores
 
     def create_hierarchy(self):
         os.makedirs(self.root_path(), exist_ok=True)
@@ -31,6 +44,9 @@ class AlgorithmStore:
         os.makedirs(self.evaluation_dir(), exist_ok=True)
 
     def extract_alg(self):
+        if os.path.exists(self.algorithm_dir()):
+            shutil.rmtree(self.algorithm_dir(), ignore_errors=True)
+            os.makedirs(self.algorithm_dir(), exist_ok=True)
         # fixes issue with zipped folder of files vs. zipped files
         with zipfile.ZipFile(os.path.join(self.root_path(), self.alg_name + ".zip"), 'r') as zip_ref:
             zip_ref.extractall(self.algorithm_dir())
