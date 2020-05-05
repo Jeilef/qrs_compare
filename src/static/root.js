@@ -39,12 +39,19 @@ $(document).ready( function () {
         }
     }
     console.log(roc_vals);
-    var trace1 = {
-        x: [1,2,3,4],
-        y: [1,4,9, 16],
-        mode: 'lines+markers'
-    };
-    var data = [trace1];
+    var data = [];
+    roc_vals.forEach(function (rv) {
+        var trace = {
+            x: rv.map(function (x) {
+                return x[1]
+            }),
+            y: rv.map(function (x) {
+                return x[0]
+            }),
+            mode: 'lines+markers'
+        };
+        data.push(trace);
+    });
     Plotly.newPlot('tester', data);
 });
 

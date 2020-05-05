@@ -2,6 +2,7 @@ import json
 import os
 from flask import Flask, render_template, flash, request, redirect, url_for, Blueprint, jsonify
 from werkzeug.utils import secure_filename
+from multiprocessing import Pool
 
 from algorithm_evaluation import evaluate_algorithm, read_evaluated_algorithms
 from algorithm_store import AlgorithmStore
@@ -52,8 +53,9 @@ def uploaded_file(filename):
 @app.route('/reeval')
 def reeval(metrics=None):
     alg_stores = AlgorithmStore.for_all_existing(app.config['UPLOAD_FOLDER'])
-    for alg_store in alg_stores:
-        evaluate_algorithm(alg_store)
+    with Pool(len(alg_stores)) as p:
+        p.map(evaluate_algorithm, alg_stores)
+
     ms = read_evaluated_algorithms()
     print(ms)
     return render_template('root.html', metrics=json.dumps(ms).replace("'", '"'))

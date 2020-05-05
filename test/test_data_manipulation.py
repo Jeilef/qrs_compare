@@ -26,3 +26,4 @@ class TestManipData(unittest.TestCase):
         record_read = wfdb.rdrecord(record_name, physical=False)
         record_read.d_signal += 1
         record_read.wrsamp(write_dir='data/samples/', expanded=False)
+

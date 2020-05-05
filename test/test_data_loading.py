@@ -1,3 +1,4 @@
+import os
 import unittest
 from os import listdir
 
@@ -15,10 +16,10 @@ class TestLoadingData(unittest.TestCase):
         wfdb.io.Record(self.mitdb + '100')
 
     def test_read_whole_dir(self):
-        l = listdir(self.mitdb)
         with open(self.mitdb + "RECORDS", 'r') as f:
             records = list(f.readlines())
         records = [wfdb.io.Record(self.mitdb + r) for r in records]
+        self.assertEqual(48, len(records))
 
     def test_detect(self):
         record_name = self.mitdb + "100"
@@ -63,6 +64,34 @@ class TestLoadingData(unittest.TestCase):
                 print(i)
             except Exception as e:
                 print(i, e)
+
+    def test_amount_of_data_in_mit_ar(self):
+        with open(self.mitdb + "RECORDS", 'r') as f:
+            records = list(f.readlines())
+        annotations = [wfdb.rdann(self.mitdb + r.rstrip('\n'), extension='atr') for r in records]
+        print(sum(map(lambda x: len(x.sample), annotations)))
+        self.assertLess(10000, sum(map(lambda x: len(x.sample), annotations)))
+        self.assertLess(100000, sum(map(lambda x: len(x.sample), annotations)))
+
+    def test_amount_of_certain_beats_in_mit_ar(self):
+        annotations = []
+        for dirpath, subdir, filenames in os.walk("/mnt/dsets/physionet"):
+            if "RECORDS" in filenames:
+                with open(os.path.join(dirpath, "RECORDS"), 'r') as f:
+                    records = list(f.readlines())
+                    for r in records:
+                        ann_file_name = os.path.join(dirpath, r.rstrip('\n'))
+                        if os.path.exists(ann_file_name + '.atr') and os.path.isfile(ann_file_name + '.atr'):
+                            annotations.append(wfdb.rdann(ann_file_name, extension='atr'))
+
+        num_beats = {}
+        for ann in annotations:
+            for label in ann.symbol:
+                num_beats.setdefault(label, 0)
+                num_beats[label] += 1
+
+        print(num_beats)
+        self.assertLess(10000, num_beats['N'])
 
 
 if __name__ == '__main__':

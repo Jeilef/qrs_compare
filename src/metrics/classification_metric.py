@@ -99,23 +99,24 @@ class RoCCurve(ClassificationMetric):
     def __init__(self, sample_rate=360):
         super().__init__()
         self.sample_rate = sample_rate
-        self.tp_by_tol = [[] for _ in range(1, self.sample_rate, 10)]
-        self.fp_by_tol = [[] for _ in range(1, self.sample_rate, 10)]
-        self.tn_by_tol = [[] for _ in range(1, self.sample_rate, 10)]
-        self.fn_by_tol = [[] for _ in range(1, self.sample_rate, 10)]
+        self.spacing = sample_rate // 5
+        self.tp_by_tol = [[] for _ in range(1, self.sample_rate, self.spacing)]
+        self.fp_by_tol = [[] for _ in range(1, self.sample_rate, self.spacing)]
+        self.tn_by_tol = [[] for _ in range(1, self.sample_rate, self.spacing)]
+        self.fn_by_tol = [[] for _ in range(1, self.sample_rate, self.spacing)]
         self.tn = []
 
     def match_annotations(self, true_samples, true_symbols, test_samples):
-        for tol in range(1, self.sample_rate, 10):
-            self.tp = self.tp_by_tol[tol // 10]
-            self.fp = self.fp_by_tol[tol // 10]
-            self.tn = self.tn_by_tol[tol // 10]
-            self.fn = self.fn_by_tol[tol // 10]
+        for tol in range(1, self.sample_rate, self.spacing):
+            self.tp = self.tp_by_tol[tol // self.spacing]
+            self.fp = self.fp_by_tol[tol // self.spacing]
+            self.tn = self.tn_by_tol[tol // self.spacing]
+            self.fn = self.fn_by_tol[tol // self.spacing]
             self.match_classification_annotations(true_samples, true_symbols, test_samples, tol)
-            self.tp_by_tol[tol // 10] = self.tp
-            self.fp_by_tol[tol // 10] = self.fp
-            self.tn_by_tol[tol // 10] = self.tn
-            self.fn_by_tol[tol // 10] = self.fn
+            self.tp_by_tol[tol // self.spacing] = self.tp
+            self.fp_by_tol[tol // self.spacing] = self.fp
+            self.tn_by_tol[tol // self.spacing] = self.tn
+            self.fn_by_tol[tol // self.spacing] = self.fn
         return self.compute()
 
     def match_classification_annotations(self, true_samples, true_symbols, test_samples, tolerance):
