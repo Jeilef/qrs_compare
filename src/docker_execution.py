@@ -3,6 +3,8 @@ import os
 import shutil
 import subprocess
 
+from data_handling.data_docker_setup import ECGData
+
 
 def setup_docker(alg_store):
     """
@@ -14,11 +16,12 @@ def setup_docker(alg_store):
 
     docker_name = datetime.datetime.now().microsecond
 
-    execute_algorithm(alg_store.algorithm_dir(), docker_name, alg_store.groundtruth_dir(), alg_store.input_dir())
-
-    extract_predictions(docker_name, alg_store.prediction_dir())
-    p = subprocess.run(["docker", "rm", str(docker_name)], check=True)
-    print(p.returncode)
+    docker_names = execute_algorithm(alg_store.algorithm_dir(), docker_name, alg_store.groundtruth_dir(),
+                                     alg_store.input_dir())
+    for docker_name in docker_names:
+        extract_predictions(docker_name, alg_store.prediction_dir())
+        p = subprocess.run(["docker", "rm", str(docker_name)], check=True)
+        print(p.returncode)
     return "Fine."
 
 
@@ -41,28 +44,24 @@ def prepare_setup_for_execution_in_docker(setup_file_path):
 
 
 def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path):
-    setup_evaluation_data(input_data_path, gt_data_path)
+    test_data_manager = ECGData(input_data_path, gt_data_path)
+    test_data_manager.setup_evaluation_data()
     rt = subprocess.run(["systemctl", "--user", "start", "docker"], check=True).returncode
     print("Docker deamon start exited with: ", rt)
-    start_docker = ["docker", "run", "--name={}".format(docker_name), "--network", "host",
-                    "-v", "{}:/alg".format(alg_dir),
-                    "-v", "{}:/data".format(input_data_path),
-                    "ubuntu", "bash", "/alg/setup.sh", ]
-    print("preparation complete. starting docker with: ", " ".join(start_docker))
-    p = subprocess.run(start_docker, check=True)
-    print(p.returncode)
+    docker_names = []
+    docker_container = []
+    for input_data_folder in os.listdir(input_data_path):
+        extended_name = str(docker_name) + input_data_folder
+        docker_names.append(extended_name)
+        start_docker = ["docker", "run", "--name={}".format(extended_name), "--network", "host",
+                        "-v", "{}:/alg".format(alg_dir),
+                        "-v", "{}:/data".format(os.path.join(input_data_path, input_data_folder)),
+                        "ubuntu", "bash", "/alg/setup.sh", ]
+        print("preparation complete. starting docker with: ", " ".join(start_docker))
+        p = subprocess.Popen(start_docker)
+        docker_container.append(p)
 
+    for p in docker_container:
+        p.wait()
+    return docker_names
 
-def setup_evaluation_data(data_folder_path, ann_data_path):
-    src = "/mnt/dsets/physionet/mitdb/1.0.0"
-    for data_file in os.listdir(src):
-        if os.path.isdir(os.path.join(src, data_file)):
-            continue
-        if '.' in data_file and data_file.rsplit(".")[1] == 'atr':
-            ann_file_path = os.path.join(ann_data_path, data_file)
-            if not os.path.exists(ann_file_path):
-                shutil.copy2(os.path.join(src, data_file), ann_data_path)
-        else:
-            data_file_path = os.path.join(data_folder_path, data_file)
-            if not os.path.exists(data_file_path):
-                shutil.copy2(os.path.join(src, data_file), data_folder_path)

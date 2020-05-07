@@ -1,6 +1,9 @@
+import os
 from functools import reduce
 
 import numpy as np
+import wfdb
+
 
 def splice_per_beat_type(samples, annotations, splice_size=10):
     splices = {}
@@ -22,8 +25,8 @@ def splitup_signal_by_beat_type(samples, annotations):
     for ann_idx, (beat, label) in enumerate(zip(annotations.sample, annotations.symbol)):
         if label == 'N' or not label.isalpha():
             continue
-        special_beat, rel_ann = cut_out_beat_from_annotation(samples, annotations, beat)
-        parts.setdefault(label, []).append(special_beat)
+        special_beat, rel_ann = cut_out_beat_from_annotation(samples, annotations, ann_idx)
+        parts.setdefault(label, []).append((special_beat, [rel_ann]))
     for label, special_beats in parts.items():
         parts[label] = reduce(join_sample_parts, special_beats)
     return parts
@@ -31,18 +34,44 @@ def splitup_signal_by_beat_type(samples, annotations):
 
 def cut_out_beat_from_annotation(samples, annotations, ann_idx):
     prev_beat = 0 if ann_idx == 0 else annotations.sample[ann_idx - 1]
-    next_beat = annotations.sample[-1] if ann_idx >= len(annotations.sample) else annotations.sample[ann_idx + 1]
+    next_beat = len(samples) if ann_idx >= len(annotations.sample) - 1 else annotations.sample[ann_idx + 1]
 
     current_beat = annotations.sample[ann_idx]
-    part_begin = (current_beat - prev_beat) // 2
+    part_begin = (current_beat + prev_beat) // 2 if prev_beat != 0 else 0
     rel_ann = annotations.sample[ann_idx] - part_begin
     return cut_out_beat_at(samples, prev_beat, current_beat, next_beat), rel_ann
 
 
 def cut_out_beat_at(samples, prev_beat, beat, next_beat):
-    return samples[(beat - prev_beat) // 2: (next_beat - beat) // 2]
+    if prev_beat == 0:
+        return samples[: (next_beat + beat) // 2]
+    if next_beat == len(samples):
+        return samples[(beat + prev_beat) // 2:]
+    return samples[(beat + prev_beat) // 2: (next_beat + beat) // 2]
 
 
 def join_sample_parts(sp1, sp2):
-    sp2 = sp2 - np.mean(sp2)
-    return np.concatenate((sp1, sp2))
+    s1, a1 = sp1
+    s2, a2 = sp2
+    s2 = s2 - np.mean(s2)
+    concat_samples = np.concatenate((s1, s2))
+    adapted_a2 = [i + len(s1) for i in a2]
+    a1.extend(adapted_a2)
+    return concat_samples, a1
+
+
+def splitup_signal_from_file(file_path, splice_size=None):
+    ann_file_name = os.path.join(file_path)
+    ann_file_exists = os.path.exists(ann_file_name + '.atr') and os.path.isfile(ann_file_name + '.atr')
+    rec_file_name = os.path.join(file_path)
+    rec_file_exists = os.path.exists(ann_file_name + '.dat') and os.path.isfile(ann_file_name + '.dat')
+    if ann_file_exists and rec_file_exists:
+        annotations = wfdb.rdann(ann_file_name, extension='atr')
+        sample, meta = wfdb.rdsamp(rec_file_name, channels=[0])
+        meta['file_name'] = file_path.rsplit(os.path.sep, 1)[1]
+    else:
+        return None, None, None
+    if splice_size:
+        return meta, splice_per_beat_type(sample, annotations, splice_size)
+    else:
+        return meta, splitup_signal_by_beat_type(sample, annotations)
