@@ -33,7 +33,7 @@ class AreaUnderCurve(Metric):
 
         current_idx = 0
         current_complex = true_samples[0]
-        next_complex = true_samples[1]
+        next_complex = true_samples[1] if len(true_samples) > 1 else current_complex
         for ts in test_samples:
             while abs(current_complex - ts) > abs(next_complex - ts):
                 current_complex = next_complex
@@ -57,7 +57,7 @@ class RegressionMetric(Metric):
 
         next_idx = 1
         current_complex = true_samples[0]
-        next_complex = true_samples[1]
+        next_complex = true_samples[1] if len(true_samples) > 1 else current_complex
         for ts in test_samples:
             while abs(current_complex - ts) > abs(next_complex - ts):
                 current_complex = next_complex

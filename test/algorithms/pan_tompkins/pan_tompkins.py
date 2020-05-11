@@ -3,7 +3,7 @@ from ecgdetectors import Detectors
 import numpy as np
 
 DATA_PATH = "/data/"
-SAVE_PATH = "/data/"
+SAVE_PATH = "/pred/"
 
 with open(DATA_PATH + "RECORDS", 'r') as f:
     records = f.readlines()

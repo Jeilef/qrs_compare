@@ -28,6 +28,12 @@ def evaluate_algorithm(alg_store):
                 pred_ann_ref = rdann(pred_ann_file, 'atr')
                 gt_ann_ref = rdann(gt_ann_file, 'atr')
                 metric.match_annotations(gt_ann_ref.sample, gt_ann_ref.symbol, pred_ann_ref.sample)
+        else:
+            # occurs if algorithm does not output any annotation
+            for metric in acc_metrics:
+                pred_ann_ref_sample = [-1]
+                gt_ann_ref = rdann(gt_ann_file, 'atr')
+                metric.match_annotations(gt_ann_ref.sample, gt_ann_ref.symbol, pred_ann_ref_sample)
 
     convert_metrics_to_json(alg_store, acc_metrics)
 

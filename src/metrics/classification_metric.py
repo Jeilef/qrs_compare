@@ -68,7 +68,7 @@ class PositivePredictiveValue(ClassificationMetric):
         return self.compute()
 
     def compute(self):
-        return len(self.tp) / (len(self.fp) + len(self.tp))
+        return len(self.tp) / max((len(self.fp) + len(self.tp)), 0.00001)
 
 
 class Sensitivity(ClassificationMetric):
@@ -79,7 +79,7 @@ class Sensitivity(ClassificationMetric):
         return self.compute()
 
     def compute(self):
-        return len(self.tp) / (len(self.fn) + len(self.tp))
+        return len(self.tp) / max((len(self.fn) + len(self.tp)), 0.00001)
 
 
 class F1(ClassificationMetric):
@@ -90,7 +90,7 @@ class F1(ClassificationMetric):
         return self.compute()
 
     def compute(self):
-        return 2 * len(self.tp)/(2 * len(self.tp) + len(self.fn) + len(self.fp))
+        return 2 * len(self.tp)/max((2 * len(self.tp) + len(self.fn) + len(self.fp)), 0.00001)
 
 
 class RoCCurve(ClassificationMetric):
@@ -107,16 +107,13 @@ class RoCCurve(ClassificationMetric):
         self.tn = []
 
     def match_annotations(self, true_samples, true_symbols, test_samples):
+        # TODO: add multiprocessing
         for tol in range(1, self.sample_rate, self.spacing):
-            self.tp = self.tp_by_tol[tol // self.spacing]
-            self.fp = self.fp_by_tol[tol // self.spacing]
-            self.tn = self.tn_by_tol[tol // self.spacing]
-            self.fn = self.fn_by_tol[tol // self.spacing]
-            self.match_classification_annotations(true_samples, true_symbols, test_samples, tol)
-            self.tp_by_tol[tol // self.spacing] = self.tp
-            self.fp_by_tol[tol // self.spacing] = self.fp
-            self.tn_by_tol[tol // self.spacing] = self.tn
-            self.fn_by_tol[tol // self.spacing] = self.fn
+            tp, fp, tn, fn = self.match_classification_annotations(true_samples, true_symbols, test_samples, tol)
+            self.tp_by_tol[tol // self.spacing].extend(tp)
+            self.fp_by_tol[tol // self.spacing].extend(fp)
+            self.tn_by_tol[tol // self.spacing].extend(tn)
+            self.fn_by_tol[tol // self.spacing].extend(fn)
         return self.compute()
 
     def match_classification_annotations(self, true_samples, true_symbols, test_samples, tolerance):
@@ -126,11 +123,12 @@ class RoCCurve(ClassificationMetric):
         true_queue = []
         test_idx = 0
         test_queue = []
-        while true_samples[true_idx] <= interval_end:
+        tp, fp, fn, tn = [], [], [], []
+        while true_idx < len(true_samples) and true_samples[true_idx] <= interval_end:
             true_queue.append(true_idx)
             true_idx += 1
 
-        while test_samples[test_idx] <= interval_end:
+        while test_idx < len(test_samples) and test_samples[test_idx] <= interval_end:
             test_queue.append(test_idx)
             test_idx += 1
 
@@ -138,13 +136,13 @@ class RoCCurve(ClassificationMetric):
             len_test = len(test_queue)
             len_true = len(true_queue)
             if len_test == len_true and len_true > 0:
-                self.tp.append(interval_start)
+                tp.append(interval_start)
             if len_test > len_true:
-                self.fp.append(interval_start)
+                fp.append(interval_start)
             if len_test < len_true:
-                self.fn.append(interval_start)
+                fn.append(interval_start)
             if len_test == 0 == len_true:
-                self.tn.append(interval_start)
+                tn.append(interval_start)
 
             interval_start += 1
             interval_end += 1
@@ -158,6 +156,7 @@ class RoCCurve(ClassificationMetric):
             if test_idx < len(test_samples) and test_samples[test_idx] <= interval_end:
                 test_queue.append(test_idx)
                 test_idx += 1
+        return tp, fp, tn, fn
 
     def compute(self):
         metrics_per_tol = []
@@ -166,4 +165,4 @@ class RoCCurve(ClassificationMetric):
         return metrics_per_tol
 
     def ppv_fpr(self, tp, fp, tn, fn):
-        return tp/(tp + fn), fp/(fp + tn)
+        return tp/max(tp + fn, 0.00001), fp/max(fp + tn, 0.00001)

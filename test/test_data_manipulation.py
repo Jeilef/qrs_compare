@@ -30,3 +30,12 @@ class TestManipData(unittest.TestCase):
         record_read.d_signal += 1
         record_read.wrsamp(write_dir='data/samples/', expanded=False)
 
+    def test_save_annotation(self):
+        wfdb.wrann("test_record_save_ann", 'atr', np.array([1]), np.array(["N"]), fs=360,
+                   write_dir="data/ann")
+        a = [1, 2, 4, 4, 5, 6, 7, 8, 1, 5, 3, 5, 6, 6]
+        a = list(map(lambda x: list([x]), a))
+        wfdb.wrsamp("test_record_save_ann", 360, ["mV"], ["I"], np.array(a, np.float64),
+                    comments=None, base_date=None, base_time=None,
+                    write_dir="data/ann")
+        wfdb.rdann("data/ann/test_record_save_ann", "atr")

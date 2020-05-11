@@ -17,12 +17,17 @@ def setup_docker(alg_store):
     docker_name = datetime.datetime.now().microsecond
 
     docker_names = execute_algorithm(alg_store.algorithm_dir(), docker_name, alg_store.groundtruth_dir(),
-                                     alg_store.input_dir())
-    for docker_name in docker_names:
-        extract_predictions(docker_name, alg_store.prediction_dir())
-        p = subprocess.run(["docker", "rm", str(docker_name)], check=True)
-        print(p.returncode)
+                                     alg_store.input_dir(), alg_store.prediction_dir())
+    # for docker_name in docker_names:
+    #    p = finalize_docker(alg_store, docker_name)
+    #    print(p.returncode)
     return "Fine."
+
+
+def finalize_docker(alg_store, docker_name):
+    extract_predictions(docker_name, alg_store.prediction_dir())
+    p = subprocess.run(["docker", "rm", str(docker_name)], check=True)
+    return p
 
 
 def extract_predictions(docker_name, result_folder_path):
@@ -43,9 +48,9 @@ def prepare_setup_for_execution_in_docker(setup_file_path):
         print(sf.readlines())
 
 
-def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path):
+def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path, prediction_path):
     test_data_manager = ECGData(input_data_path, gt_data_path)
-    test_data_manager.setup_evaluation_data()
+    input_data_path, copy_process = test_data_manager.setup_evaluation_data()
     rt = subprocess.run(["systemctl", "--user", "start", "docker"], check=True).returncode
     print("Docker deamon start exited with: ", rt)
     docker_names = []
@@ -53,9 +58,10 @@ def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path):
     for input_data_folder in os.listdir(input_data_path):
         extended_name = str(docker_name) + input_data_folder
         docker_names.append(extended_name)
-        start_docker = ["docker", "run", "--name={}".format(extended_name), "--network", "host",
+        start_docker = ["docker", "run", "--name={}".format(extended_name), "--network", "host", "--rm",
                         "-v", "{}:/alg".format(alg_dir),
                         "-v", "{}:/data".format(os.path.join(input_data_path, input_data_folder)),
+                        "-v", "{}:/pred".format(os.path.join(prediction_path)),
                         "ubuntu", "bash", "/alg/setup.sh", ]
         print("preparation complete. starting docker with: ", " ".join(start_docker))
         p = subprocess.Popen(start_docker)
@@ -63,5 +69,7 @@ def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path):
 
     for p in docker_container:
         p.wait()
+
+    copy_process.join()
     return docker_names
 

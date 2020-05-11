@@ -15,7 +15,7 @@ def splice_per_beat_type(samples, annotations, splice_size=10):
 
         start_sample = annotations.sample[start_idx]
         end_sample = annotations.sample[end_idx]
-
+        print(ann_idx, beat, label) if start_sample == end_sample else None
         splices.setdefault(label, []).append((samples[start_sample:end_sample], beat - start_sample, beat))
     return splices
 
