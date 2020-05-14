@@ -24,24 +24,35 @@ $(document).ready( function () {
         "columns": titles
     });
     // insert vals into table
+    var data_points_for_box_plots = {};
     for(const metric_line in $metric){
         if($metric.hasOwnProperty(metric_line)){
             var m_line = $metric[metric_line];
-            var vals = Object.values(m_line);
-            var rounded_vals = vals.map(function (x) {
+            var alg_name = m_line.Name;
+            var vals = Object.entries(m_line);
+            var prepared_vals = vals.map(function (x) {
+                // split up data per datatype
+                if(x[0] === "Name"){
+                    return x[1];
+                }
+                var keys_per_datatype = Object.keys(x[1]);
+                var vals_per_datatype = Object.values(x[1]);
                  if(typeof(x) === "number"){
                      return x.toFixed(6);
                  }else{
-                     return x;
+                     data_points_for_box_plots["box-plot-" + x[0] + alg_name] = vals_per_datatype;
+                     return "<div id='box-plot-" + x[0] + alg_name + "'></div>";
                  }
             });
-            while(rounded_vals.length < title_cols.length){
-                rounded_vals.add(-1)
+            while(prepared_vals.length < title_cols.length){
+                prepared_vals.add(-1)
             }
-            tab.row.add(rounded_vals).draw(false);
+            tab.row.add(prepared_vals).draw(false);
         }
     }
+    create_boxplots_for_datapoints(data_points_for_box_plots);
     // create Roc curve plot
+    /*
     console.log(roc_vals);
     var data = [];
     roc_vals.forEach(function (rv) {
@@ -56,10 +67,25 @@ $(document).ready( function () {
         };
         data.push(trace);
     });
-    Plotly.newPlot('tester', data);
+    Plotly.newPlot('tester', data);*/
 });
 // make that filename is shown after file was selected
 $(".custom-file-input").on("change", function() {
     const fileName = $(this).val().split("\\").pop();
     $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
 });
+
+function create_boxplots_for_datapoints(datapoints){
+    Object.entries(datapoints).forEach(function(entry){
+        var trace1 = {
+          x: entry[1],
+          type: 'box',
+          name: ''
+        };
+        var data = [trace1];
+        var layout = {
+          title: ''
+        };
+        Plotly.newPlot(entry[0], data, layout);
+    })
+}

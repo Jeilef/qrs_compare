@@ -1,3 +1,7 @@
+def join(x, y):
+    return x.join(y)
+
+
 class Metric:
     __abbrev__ = ''
 
@@ -53,6 +57,10 @@ class AreaUnderCurve(Metric):
 class RegressionMetric(Metric):
     def __init__(self):
         self.distance_to_true = []
+
+    def join(self, other):
+        self.distance_to_true.extend(other.distance_to_true)
+        return self
 
     def match_annotations(self, true_samples, true_symbols, test_samples, sampling_frequency=360):
         next_idx = 1

@@ -1,13 +1,13 @@
-import json
-import os
-
-import dill as dill
-from wfdb import rdann
 import concurrent.futures as cf
 import multiprocessing as mp
+import json
+import os
+from functools import reduce
+
+from wfdb import rdann
 
 from metrics.classification_metric import PositivePredictiveValue, Sensitivity, F1, RoCCurve
-from metrics.metric import MeanSquaredError, MeanAbsoluteError, MeanError, DynamicThreshold
+from metrics.metric import MeanSquaredError, MeanAbsoluteError, MeanError, DynamicThreshold, join
 
 
 def read_evaluated_algorithms():
@@ -27,9 +27,9 @@ def evaluate_algorithm(alg_store):
 
     loaded_data = list(read_ann_files(alg_store))
 
-    print("Loaded Eval Data", dill.pickles(loaded_data))
+    print("Loaded Eval Data")
     with cf.ProcessPoolExecutor(max_workers=len(acc_metrics)) as pool:
-        computed_metrics = pool.map(evaluate_algorithm_with_metric, list([alg_store] * len(acc_metrics)),
+        computed_metrics = pool.map(evaluate_algorithm_with_metric,
                                     acc_metrics,
                                     list([loaded_data] * len(acc_metrics)))
     print("Saving Evaluation Results to JSON")
@@ -39,7 +39,7 @@ def evaluate_algorithm(alg_store):
 def read_ann_files(alg_store):
     file_names = os.listdir(alg_store.groundtruth_dir())
     with cf.ProcessPoolExecutor(max_workers=10) as pool:
-        prepared_ann_tuples = pool.map(read_ann_file, [alg_store] * len(file_names), file_names)
+        prepared_ann_tuples = list(pool.map(read_ann_file, [alg_store] * len(file_names), file_names))
     return prepared_ann_tuples
 
 
@@ -61,25 +61,32 @@ def read_ann_file(alg_store, ann_file):
         return [anno[1]], [gt_ann_ref.symbol[1]], pred_ann_ref_sample, gt_ann_ref.fs, ann_file_type
 
 
-def evaluate_algorithm_with_metric(alg_store, metric, loaded_data):
+def evaluate_algorithm_with_metric(metric, loaded_data):
     print("Starting:", metric.__abbrev__)
-    typed_metrics = create_metric_for_each_data_type(metric, alg_store.groundtruth_dir())
-    for idx, ann_tuple in enumerate(loaded_data):
-        print("{} currently at: {}%".format(metric.__abbrev__, ((idx * 100000 // len(loaded_data)) / 1000)))
-        typed_metric = typed_metrics[ann_tuple[4]]
-        typed_metric.match_annotations(*ann_tuple[0:4])
+    workers = mp.cpu_count() // 2
+    with cf.ProcessPoolExecutor(max_workers=workers) as pool:
+        calc_metrics = list(pool.map(match_for_metric_on_data_part,
+                                     loaded_data,
+                                     list([metric]*len(loaded_data)),
+                                     chunksize=(len(loaded_data) // workers) + 1))
+
+        collected_metrics = {}
+        for symbol, metric in calc_metrics:
+            collected_metrics.setdefault(symbol, []).append(metric)
+
+    typed_metrics = {}
+    for symbol, metrics in collected_metrics.items():
+        red_metric = reduce(join, metrics)
+        typed_metrics[symbol] = red_metric
 
     print("Finished:", metric.__abbrev__)
     return typed_metrics
 
 
-def create_metric_for_each_data_type(metric_class, data_directory):
-    files = os.listdir(data_directory)
-    types = list(set(map(lambda x: x.split("_")[0], files)))
-    typed_metrics = {}
-    for data_type in types:
-        typed_metrics[data_type] = metric_class()
-    return typed_metrics
+def match_for_metric_on_data_part(ann_tuple, metric_class):
+    typed_metric = metric_class()
+    typed_metric.match_annotations(*ann_tuple[0:4])
+    return ann_tuple[4], typed_metric
 
 
 def convert_metrics_to_json(alg_store, acc_metrics):
@@ -95,4 +102,3 @@ def convert_metrics_to_json(alg_store, acc_metrics):
 
     with open(os.path.join(alg_store.evaluation_dir(), "metrics.json"), "w") as metrics_file:
         metrics_file.write(json.dumps(json_dict))
-

@@ -6,12 +6,18 @@ import concurrent.futures as cf
 
 
 class ClassificationMetric(Metric):
-    def __init__(self, tolerance=36):
+    def __init__(self, tolerance=0.1):
         self.fn = []
         self.fp = []
         self.tp = []
 
         self.tolerance = tolerance
+
+    def join(self, other):
+        self.fn.extend(other.fn)
+        self.fp.extend(other.fp)
+        self.tp.extend(other.tp)
+        return self
 
     def match_annotations(self, true_samples, true_symbols, test_samples, sampling_frequency=360):
         """Tries to match two lists of (supposed) QRS positions.
@@ -31,7 +37,8 @@ class ClassificationMetric(Metric):
             symbol).
             :param sampling_frequency:
         """
-        self.match_classification_annotations(true_samples, true_symbols, test_samples, self.tolerance)
+        self.match_classification_annotations(true_samples, true_symbols, test_samples,
+                                              self.tolerance * sampling_frequency)
 
     def match_classification_annotations(self, true_samples, true_symbols, test_samples, tolerance):
 
@@ -110,34 +117,34 @@ class RoCCurve(ClassificationMetric):
     def __init__(self, parts=5):
         super().__init__()
         self.parts = parts
-        self.tp_by_tol = [[] for _ in range(parts)]
-        self.fp_by_tol = [[] for _ in range(parts)]
-        self.tn_by_tol = [[] for _ in range(parts)]
-        self.fn_by_tol = [[] for _ in range(parts)]
-        self.tn = []
+        self.tp_by_tol = [0 for _ in range(parts)]
+        self.fp_by_tol = [0 for _ in range(parts)]
+        self.tn_by_tol = [0 for _ in range(parts)]
+        self.fn_by_tol = [0 for _ in range(parts)]
+
+    def join(self, other):
+        for p in range(self.parts):
+            self.tp_by_tol[p] += other.tp_by_tol[p]
+            self.fp_by_tol[p] += other.fp_by_tol[p]
+            self.tn_by_tol[p] += other.tn_by_tol[p]
+            self.fn_by_tol[p] += other.fn_by_tol[p]
+        return self
 
     def match_annotations(self, true_samples, true_symbols, test_samples, sampling_frequency=360):
-
         window_sizes = list(range(1, sampling_frequency - (sampling_frequency % self.parts),
                                   sampling_frequency // self.parts))
-        # TODO remove multiprocessing, optimize calculation
-        with cf.ProcessPoolExecutor(max_workers=len(window_sizes)) as pool:
-            confusion_values = pool.map(self.match_classification_annotations,
-                                        list([true_samples] * len(window_sizes)),
-                                        list([true_symbols] * len(window_sizes)),
-                                        list([test_samples] * len(window_sizes)),
-                                        window_sizes)
-        #confusion_values = map(self.match_classification_annotations,
-        #                       list([true_samples] * len(window_sizes)),
-        #                       list([true_symbols] * len(window_sizes)),
-        #                       list([test_samples] * len(window_sizes)),
-        #                       window_sizes)
+        confusion_values = map(self.match_classification_annotations,
+                               list([true_samples] * len(window_sizes)),
+                               list([true_symbols] * len(window_sizes)),
+                               list([test_samples] * len(window_sizes)),
+                               window_sizes)
 
-        for idx, cv in enumerate(list(confusion_values)):
-            self.tp_by_tol[idx].extend(cv[0])
-            self.fp_by_tol[idx].extend(cv[1])
-            self.tn_by_tol[idx].extend(cv[2])
-            self.fn_by_tol[idx].extend(cv[3])
+        for idx, cv in enumerate(confusion_values):
+            self.tp_by_tol[idx] += cv[0]
+            self.fp_by_tol[idx] += cv[1]
+            self.tn_by_tol[idx] += cv[2]
+            self.fn_by_tol[idx] += cv[3]
+
         return self.compute()
 
     def match_classification_annotations(self, true_samples, true_symbols, test_samples, tolerance):
@@ -175,13 +182,17 @@ class RoCCurve(ClassificationMetric):
 
         num_tn = max(true_samples[-1], test_samples[-1]) - len(tp) - len(fp) - len(fn) + 1
         tn.extend([0] * num_tn)
-        return tp, fp, tn, fn
+        return len(tp), len(fp), len(tn), len(fn)
 
     def compute(self):
         metrics_per_tol = []
         for tp, fp, tn, fn in zip(self.tp_by_tol, self.fp_by_tol, self.tn_by_tol, self.fn_by_tol):
-            metrics_per_tol.append(self.ppv_fpr(len(tp), len(fp), len(tn), len(fn)))
-        return min(metrics_per_tol, key=lambda x: math.sqrt(x[0] ** 2 + (1 - x[1]) ** 2))
+            metrics_per_tol.append(self.ppv_fpr(tp, fp, tn, fn))
+        return min(metrics_per_tol, key=self.distance_to_upper_left_corner)
+
+    def distance_to_upper_left_corner(self, x):
+        fi, se = x
+        return math.sqrt(fi ** 2 + (1 - se) ** 2)
 
     def ppv_fpr(self, tp, fp, tn, fn):
         return tp / max(tp + fn, 0.00001), fp / max(fp + tn, 0.00001)
