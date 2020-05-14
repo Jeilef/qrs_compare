@@ -67,6 +67,7 @@ class TestManipData(unittest.TestCase):
                 # record_name = self.fields[i]['file_name'] + '_' + label
 
                 for samples, rel_ann, orig_ann in data:
+                    rel_ann = rel_ann[1]
                     splice_pred = algorithm(samples, fs=fs)
                     special_pred = get_closest(splice_pred, rel_ann)
                     regular_pred = get_closest(no_splice_pred, orig_ann)

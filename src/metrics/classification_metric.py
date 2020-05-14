@@ -1,5 +1,9 @@
+import math
+from bisect import bisect_left, bisect_right
+
 from metrics.metric import Metric
-from bisect import bisect_right
+import concurrent.futures as cf
+
 
 class ClassificationMetric(Metric):
     def __init__(self, tolerance=36):
@@ -9,7 +13,7 @@ class ClassificationMetric(Metric):
 
         self.tolerance = tolerance
 
-    def match_annotations(self, true_samples, true_symbols, test_samples):
+    def match_annotations(self, true_samples, true_symbols, test_samples, sampling_frequency=360):
         """Tries to match two lists of (supposed) QRS positions.
 
         Args:
@@ -25,6 +29,7 @@ class ClassificationMetric(Metric):
             positives characterized as tuple (test_sample, symbol?), and fn is a
             list of false negatives characterized as list of tuples (true_sample,
             symbol).
+            :param sampling_frequency:
         """
         self.match_classification_annotations(true_samples, true_symbols, test_samples, self.tolerance)
 
@@ -63,106 +68,120 @@ class ClassificationMetric(Metric):
 class PositivePredictiveValue(ClassificationMetric):
     __abbrev__ = "PPV"
 
-    def match_annotations(self, true_samples, true_symbols, test_samples):
+    def match_annotations(self, true_samples, true_symbols, test_samples, sampling_frequency=360):
         super().match_annotations(true_samples, true_symbols, test_samples)
         return self.compute()
 
     def compute(self):
-        return len(self.tp) / max((len(self.fp) + len(self.tp)), 0.00001)
+        if len(self.tp) == 0 == len(self.fp):
+            return 0
+        return len(self.tp) / (len(self.fp) + len(self.tp))
 
 
 class Sensitivity(ClassificationMetric):
     __abbrev__ = "Sens"
 
-    def match_annotations(self, true_samples, true_symbols, test_samples):
+    def match_annotations(self, true_samples, true_symbols, test_samples, sampling_frequency=360):
         super().match_annotations(true_samples, true_symbols, test_samples)
         return self.compute()
 
     def compute(self):
-        return len(self.tp) / max((len(self.fn) + len(self.tp)), 0.00001)
+        if len(self.tp) == 0 == len(self.fn):
+            return 0
+        return len(self.tp) / (len(self.fn) + len(self.tp))
 
 
 class F1(ClassificationMetric):
     __abbrev__ = "F1 Score"
 
-    def match_annotations(self, true_samples, true_symbols, test_samples):
+    def match_annotations(self, true_samples, true_symbols, test_samples, sampling_frequency=360):
         super().match_annotations(true_samples, true_symbols, test_samples)
         return self.compute()
 
     def compute(self):
-        return 2 * len(self.tp)/max((2 * len(self.tp) + len(self.fn) + len(self.fp)), 0.00001)
+        if len(self.tp) == 0 == len(self.fp) == len(self.fn):
+            return 0
+        return 2 * len(self.tp) / (2 * len(self.tp) + len(self.fn) + len(self.fp))
 
 
 class RoCCurve(ClassificationMetric):
     __abbrev__ = "RoC"
 
-    def __init__(self, sample_rate=360):
+    def __init__(self, parts=5):
         super().__init__()
-        self.sample_rate = sample_rate
-        self.spacing = sample_rate // 5
-        self.tp_by_tol = [[] for _ in range(1, self.sample_rate, self.spacing)]
-        self.fp_by_tol = [[] for _ in range(1, self.sample_rate, self.spacing)]
-        self.tn_by_tol = [[] for _ in range(1, self.sample_rate, self.spacing)]
-        self.fn_by_tol = [[] for _ in range(1, self.sample_rate, self.spacing)]
+        self.parts = parts
+        self.tp_by_tol = [[] for _ in range(parts)]
+        self.fp_by_tol = [[] for _ in range(parts)]
+        self.tn_by_tol = [[] for _ in range(parts)]
+        self.fn_by_tol = [[] for _ in range(parts)]
         self.tn = []
 
-    def match_annotations(self, true_samples, true_symbols, test_samples):
-        # TODO: add multiprocessing
-        for tol in range(1, self.sample_rate, self.spacing):
-            tp, fp, tn, fn = self.match_classification_annotations(true_samples, true_symbols, test_samples, tol)
-            self.tp_by_tol[tol // self.spacing].extend(tp)
-            self.fp_by_tol[tol // self.spacing].extend(fp)
-            self.tn_by_tol[tol // self.spacing].extend(tn)
-            self.fn_by_tol[tol // self.spacing].extend(fn)
+    def match_annotations(self, true_samples, true_symbols, test_samples, sampling_frequency=360):
+
+        window_sizes = list(range(1, sampling_frequency - (sampling_frequency % self.parts),
+                                  sampling_frequency // self.parts))
+        # TODO remove multiprocessing, optimize calculation
+        with cf.ProcessPoolExecutor(max_workers=len(window_sizes)) as pool:
+            confusion_values = pool.map(self.match_classification_annotations,
+                                        list([true_samples] * len(window_sizes)),
+                                        list([true_symbols] * len(window_sizes)),
+                                        list([test_samples] * len(window_sizes)),
+                                        window_sizes)
+        #confusion_values = map(self.match_classification_annotations,
+        #                       list([true_samples] * len(window_sizes)),
+        #                       list([true_symbols] * len(window_sizes)),
+        #                       list([test_samples] * len(window_sizes)),
+        #                       window_sizes)
+
+        for idx, cv in enumerate(list(confusion_values)):
+            self.tp_by_tol[idx].extend(cv[0])
+            self.fp_by_tol[idx].extend(cv[1])
+            self.tn_by_tol[idx].extend(cv[2])
+            self.fn_by_tol[idx].extend(cv[3])
         return self.compute()
 
     def match_classification_annotations(self, true_samples, true_symbols, test_samples, tolerance):
-        interval_start = 0
-        interval_end = tolerance
-        true_idx = 0
-        true_queue = []
-        test_idx = 0
-        test_queue = []
         tp, fp, fn, tn = [], [], [], []
-        while true_idx < len(true_samples) and true_samples[true_idx] <= interval_end:
-            true_queue.append(true_idx)
-            true_idx += 1
+        for true_beat in true_samples:
+            left_pred_idx = bisect_right(test_samples, true_beat) - 1
+            right_pred_idx = bisect_left(test_samples, true_beat)
+            left_pred_idx = max(left_pred_idx, 0)
+            right_pred_idx = min(right_pred_idx, len(test_samples) - 1)
 
-        while test_idx < len(test_samples) and test_samples[test_idx] <= interval_end:
-            test_queue.append(test_idx)
-            test_idx += 1
+            left_dist_to_beat = abs(test_samples[left_pred_idx] - true_beat)
+            right_dist_to_beat = abs(test_samples[right_pred_idx] - true_beat)
+            closest_pred_idx = left_pred_idx if left_dist_to_beat < right_dist_to_beat else right_pred_idx
+            # was the beat found
+            if min(left_dist_to_beat, right_dist_to_beat) <= tolerance:
+                num_tp = min(abs(test_samples[closest_pred_idx] - (true_beat - tolerance)),
+                             abs(test_samples[closest_pred_idx] - (true_beat + tolerance)))
+                tp.extend([closest_pred_idx] * num_tp)
+            # are there some windows where no prediction lies
+            if left_dist_to_beat + right_dist_to_beat > tolerance:
+                num_fn = min(right_dist_to_beat + left_dist_to_beat - tolerance, tolerance + 1)
+                fn.extend([true_beat] * num_fn)
 
-        while interval_end < max(true_samples[-1], test_samples[-1]):
-            len_test = len(test_queue)
-            len_true = len(true_queue)
-            if len_test == len_true and len_true > 0:
-                tp.append(interval_start)
-            if len_test > len_true:
-                fp.append(interval_start)
-            if len_test < len_true:
-                fn.append(interval_start)
-            if len_test == 0 == len_true:
-                tn.append(interval_start)
+        for pred_beat in test_samples:
+            next_beat_idx = bisect_right(true_samples, pred_beat)
+            previous_beat_idx = next_beat_idx - 1
+            previous_beat = true_samples[previous_beat_idx] if previous_beat_idx >= 0 else -1
+            if previous_beat == pred_beat:
+                continue
+            next_beat = true_samples[next_beat_idx] if next_beat_idx != len(true_samples) else previous_beat
+            num_fp = min(abs(previous_beat - pred_beat),
+                         abs(next_beat - pred_beat),
+                         tolerance + 1)
+            fp.extend([pred_beat] * num_fp)
 
-            interval_start += 1
-            interval_end += 1
-            if len(true_queue) > 0 and true_samples[true_queue[0]] < interval_start:
-                true_queue.pop(0)
-            if len(test_queue) > 0 and test_samples[test_queue[0]] < interval_start:
-                test_queue.pop(0)
-            if true_idx < len(true_samples) and true_samples[true_idx] <= interval_end:
-                true_queue.append(true_idx)
-                true_idx += 1
-            if test_idx < len(test_samples) and test_samples[test_idx] <= interval_end:
-                test_queue.append(test_idx)
-                test_idx += 1
+        num_tn = max(true_samples[-1], test_samples[-1]) - len(tp) - len(fp) - len(fn) + 1
+        tn.extend([0] * num_tn)
         return tp, fp, tn, fn
 
     def compute(self):
         metrics_per_tol = []
         for tp, fp, tn, fn in zip(self.tp_by_tol, self.fp_by_tol, self.tn_by_tol, self.fn_by_tol):
             metrics_per_tol.append(self.ppv_fpr(len(tp), len(fp), len(tn), len(fn)))
-        return metrics_per_tol
+        return min(metrics_per_tol, key=lambda x: math.sqrt(x[0] ** 2 + (1 - x[1]) ** 2))
 
     def ppv_fpr(self, tp, fp, tn, fn):
-        return tp/max(tp + fn, 0.00001), fp/max(fp + tn, 0.00001)
+        return tp / max(tp + fn, 0.00001), fp / max(fp + tn, 0.00001)

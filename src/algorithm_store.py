@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 
 class AlgorithmStore:
     __base_path__ = os.path.abspath("algorithms")
+    __general_data_path__ = os.path.abspath("comparison_data")
 
     def __init__(self, alg_name, base_path=__base_path__):
         """
@@ -37,7 +38,6 @@ class AlgorithmStore:
     def create_hierarchy(self):
         os.makedirs(self.root_path(), exist_ok=True)
         os.makedirs(self.algorithm_dir(), exist_ok=True)
-        os.makedirs(self.data_dir(), exist_ok=True)
         os.makedirs(self.groundtruth_dir(), exist_ok=True)
         os.makedirs(self.input_dir(), exist_ok=True)
         os.makedirs(self.prediction_dir(), exist_ok=True)
@@ -71,23 +71,16 @@ class AlgorithmStore:
     def algorithm_dir(self):
         return os.path.join(self.root_path(), "alg")
 
-    def data_dir(self):
-        return os.path.join(self.root_path(), "data")
-
     def groundtruth_dir(self):
-        return os.path.join(self.data_dir(), "gt")
+        return os.path.join(self.__general_data_path__, "annotations")
 
     def input_dir(self):
         # contains data for docker container
-        return os.path.join(self.data_dir(), "in")
+        return os.path.join(self.__general_data_path__, "signal")
 
     def prediction_dir(self):
         # output data from docker
-        return os.path.join(self.data_dir(), "pred")
-
-    def prediction_dir_copy(self):
-        # folder copied out of docker
-        return os.path.join(self.prediction_dir(), "data")
+        return os.path.join(self.root_path(), "pred")
 
     def evaluation_dir(self):
         return os.path.join(self.root_path(), "evaluation")

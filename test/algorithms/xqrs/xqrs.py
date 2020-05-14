@@ -11,4 +11,5 @@ with open(DATA_PATH + "RECORDS", 'r') as f:
 for record in records:
     sig, fields = wfdb.rdsamp(DATA_PATH + record, channels=[0])
     res = processing.xqrs_detect(sig[:, 0], fs=fields['fs'])
-    wfdb.wrann(record, 'atr', res, write_dir=SAVE_PATH, symbol=(['N'] * len(res)))
+    if len(res) > 0:
+        wfdb.wrann(record, 'atr', res, write_dir=SAVE_PATH, symbol=(['N'] * len(res)))

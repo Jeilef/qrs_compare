@@ -38,4 +38,11 @@ class TestManipData(unittest.TestCase):
         wfdb.wrsamp("test_record_save_ann", 360, ["mV"], ["I"], np.array(a, np.float64),
                     comments=None, base_date=None, base_time=None,
                     write_dir="data/ann")
-        wfdb.rdann("data/ann/test_record_save_ann", "atr")
+        wfdb.rdann("data/ann/test_record_save_ann_fs", "atr")
+
+    def test_fs_is_kept_when_saving(self):
+        wfdb.wrann("test_record_save_ann_fs", 'atr', np.array([1]), np.array(["N"]), fs=360,
+                   write_dir="data/ann")
+
+        ann = wfdb.rdann("data/ann/test_record_save_ann_fs", "atr")
+        self.assertEqual(360, ann.fs)

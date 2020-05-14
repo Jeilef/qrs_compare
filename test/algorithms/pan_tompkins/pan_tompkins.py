@@ -13,5 +13,6 @@ for record in records:
     sig, fields = wfdb.rdsamp(DATA_PATH + record, channels=[0])
     detectors = Detectors(fields['fs'])
     r_peaks = detectors.pan_tompkins_detector(sig[:, 0])
-    samples = np.array(r_peaks)
-    wfdb.wrann(record, 'atr', sample=samples, write_dir=SAVE_PATH, symbol=(['N'] * len(r_peaks)))
+    if len(r_peaks) > 0:
+        samples = np.array(r_peaks)
+        wfdb.wrann(record, 'atr', sample=samples, write_dir=SAVE_PATH, symbol=(['N'] * len(r_peaks)))

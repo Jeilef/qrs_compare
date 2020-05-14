@@ -53,8 +53,10 @@ def uploaded_file(filename):
 @app.route('/reeval')
 def reeval(metrics=None):
     alg_stores = AlgorithmStore.for_all_existing(app.config['UPLOAD_FOLDER'])
-    with Pool(len(alg_stores)) as p:
-        p.map(evaluate_algorithm, alg_stores)
+    for alg_store in alg_stores:
+        evaluate_algorithm(alg_store)
+    #with Pool(len(alg_stores)) as p:
+    #    p.map(evaluate_algorithm, alg_stores)
 
     ms = read_evaluated_algorithms()
     print(ms)

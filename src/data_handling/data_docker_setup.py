@@ -9,7 +9,7 @@ from data_handling.splice import splice_per_beat_type
 
 
 class ECGData:
-    __records_per_beat_type__ = 1000
+    __records_per_beat_type__ = 10000
     __base_data_path__ = "/mnt/dsets/physionet"
     __annotation_path__ = os.path.abspath("comparison_data/annotations")
     __signal_path__ = os.path.abspath("comparison_data/signal")
@@ -72,12 +72,11 @@ class ECGData:
             with mp.Pool(processes=len(self.test_samples)) as pool:
                 pool.starmap(self.save_typed_datasets, list(self.test_samples.items()))
 
-        copy_process = mp.Process(target=self.create_copy_for_algorithm)
-        copy_process.start()
-        return self.__signal_path__, copy_process
+        return self.__signal_path__
 
     def save_typed_datasets(self, symbol, datasets):
         for idx, samples in enumerate(datasets):
+            anno = self.test_annotations[symbol][idx]
             meta = self.test_fields[symbol][idx]
             reshaped_data = np.array(list(map(lambda x: list(x), samples)))
 
@@ -87,23 +86,6 @@ class ECGData:
                         write_dir=os.path.join(self.__signal_path__, symbol))
             with open(os.path.join(self.__signal_path__, symbol, "RECORDS"), 'a') as records_file:
                 records_file.writelines([record_name + "\n"])
-            anno = self.test_annotations[symbol][idx]
 
-            wfdb.wrann(record_name, 'atr', np.array([anno]), np.array([symbol]), fs=meta['fs'],
+            wfdb.wrann(record_name, 'atr', np.array(anno), np.array([symbol] * len(anno)), fs=meta['fs'],
                        write_dir=os.path.join(self.__annotation_path__))
-
-    def create_copy_for_algorithm(self):
-        self.copy_all_files_mp(self.__annotation_path__, self.ann_data_path)
-        self.copy_files_to_alg_folder(self.__signal_path__, self.data_folder_path)
-
-    def copy_all_files_mp(self, from_dir, to_dir):
-        files_to_copy_to = list(map(lambda fn: (os.path.join(from_dir, fn), to_dir), os.listdir(from_dir)))
-        with mp.Pool(processes=mp.cpu_count()) as pool:
-            pool.starmap(shutil.copy2, files_to_copy_to)
-
-    def copy_files_to_alg_folder(self, general_path, alg_path):
-        for subdir in os.listdir(general_path):
-            print("Copying subdir", subdir)
-            target_path = os.path.join(alg_path, subdir)
-            shutil.rmtree(target_path, ignore_errors=True)
-            shutil.copytree(os.path.join(general_path, subdir), target_path)
