@@ -1,5 +1,6 @@
 import math
 from bisect import bisect_left, bisect_right
+import numpy as np
 
 from metrics.metric import Metric
 import concurrent.futures as cf
@@ -152,6 +153,7 @@ class RoCCurve(ClassificationMetric):
         for true_beat in true_samples:
             left_pred_idx = bisect_right(test_samples, true_beat) - 1
             right_pred_idx = bisect_left(test_samples, true_beat)
+
             left_pred_idx = max(left_pred_idx, 0)
             right_pred_idx = min(right_pred_idx, len(test_samples) - 1)
 
@@ -162,11 +164,11 @@ class RoCCurve(ClassificationMetric):
             if min(left_dist_to_beat, right_dist_to_beat) <= tolerance:
                 num_tp = min(abs(test_samples[closest_pred_idx] - (true_beat - tolerance)),
                              abs(test_samples[closest_pred_idx] - (true_beat + tolerance)))
-                tp.extend([closest_pred_idx] * num_tp)
+                tp.extend([closest_pred_idx] * int(num_tp))
             # are there some windows where no prediction lies
             if left_dist_to_beat + right_dist_to_beat > tolerance:
                 num_fn = min(right_dist_to_beat + left_dist_to_beat - tolerance, tolerance + 1)
-                fn.extend([true_beat] * num_fn)
+                fn.extend([true_beat] * int(num_fn))
 
         for pred_beat in test_samples:
             next_beat_idx = bisect_right(true_samples, pred_beat)
@@ -178,10 +180,10 @@ class RoCCurve(ClassificationMetric):
             num_fp = min(abs(previous_beat - pred_beat),
                          abs(next_beat - pred_beat),
                          tolerance + 1)
-            fp.extend([pred_beat] * num_fp)
+            fp.extend([pred_beat] * int(num_fp))
 
         num_tn = max(true_samples[-1], test_samples[-1]) - len(tp) - len(fp) - len(fn) + 1
-        tn.extend([0] * num_tn)
+        tn.extend([0] * int(num_tn))
         return len(tp), len(fp), len(tn), len(fn)
 
     def compute(self):

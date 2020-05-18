@@ -76,16 +76,41 @@ $(".custom-file-input").on("change", function() {
 });
 
 function create_boxplots_for_datapoints(datapoints){
+    const all_between_0_and_1 = Object.values(datapoints).every(function (x) {
+        return x < 0.5 || x > 1;
+    });
+    console.log(all_between_0_and_1);
     Object.entries(datapoints).forEach(function(entry){
-        var trace1 = {
-          x: entry[1],
-          type: 'box',
-          name: ''
+        const trace1 = {
+            y: entry[1],
+            type: 'box',
+            name: ''
         };
-        var data = [trace1];
-        var layout = {
-          title: ''
+        const data = [trace1];
+        if(all_between_0_and_1){
+            var layout = {
+            title: '',
+            yaxis: {
+                range: [0, 1]
+            },
+            margin: {
+                l: 20,
+                r: 0,
+                b: 20,
+                t: 0
+            }
         };
+        }else {
+            var layout = {
+                title: '',
+                margin: {
+                    l: 20,
+                    r: 0,
+                    b: 20,
+                    t: 0
+                }
+            };
+        }
         Plotly.newPlot(entry[0], data, layout);
     })
 }

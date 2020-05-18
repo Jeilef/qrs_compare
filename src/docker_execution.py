@@ -50,7 +50,7 @@ def prepare_setup_for_execution_in_docker(setup_file_path):
 
 def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path, prediction_path):
     test_data_manager = ECGData(input_data_path, gt_data_path)
-    input_data_path, copy_process = test_data_manager.setup_evaluation_data()
+    input_data_path = test_data_manager.setup_evaluation_data()
     rt = subprocess.run(["systemctl", "--user", "start", "docker"], check=True).returncode
     print("Docker deamon start exited with: ", rt)
     docker_names = []
@@ -70,6 +70,5 @@ def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path, predi
     for p in docker_container:
         p.wait()
 
-    copy_process.join()
     return docker_names
 

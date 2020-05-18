@@ -43,7 +43,7 @@ class ECGData:
                             sample, meta = wfdb.rdsamp(rec_file_name, channels=[0])
                             meta['file_name'] = r.rstrip('\n')
 
-                            spliced_data = splice_per_beat_type(sample, ann, 7)
+                            spliced_data = splice_per_beat_type(sample, ann, 10)
                             self.update_data_with_splices(spliced_data, meta)
 
     def update_data_with_splices(self, spliced_data, meta):
