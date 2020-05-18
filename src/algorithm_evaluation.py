@@ -53,10 +53,13 @@ def read_ann_file(alg_store, ann_file):
         anno = gt_ann_ref.sample
         adapted_start = (anno[0] + anno[1]) / 2
         samples = list(filter(lambda s: adapted_start <= s <= (anno[1] + anno[2]) / 2, pred_ann_ref.sample))
-        samples = [-1] if not samples else samples
+        if not samples:
+            print("Filtered")
+            samples = [-1]
         return [anno[1] - adapted_start], [gt_ann_ref.symbol[1]], samples, gt_ann_ref.fs, ann_file_type
     else:
         # occurs if algorithm does not output any annotation
+        print("No Output")
         pred_ann_ref_sample = [-1]
         gt_ann_ref = rdann(gt_ann_file, 'atr')
         anno = gt_ann_ref.sample

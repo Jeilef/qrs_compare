@@ -1,0 +1,15 @@
+th[colspan="3"] {
+    text-align: center;
+  /*  border-right: 1px solid #dddddd;
+    border-left: 1px solid #dddddd;*/
+}
+
+td[class="border-right"]{
+    border-right: 1px solid #dddddd;
+}
+
+td[class="border-left"]{
+    border-right: 1px solid #dddddd;
+}
+
+td:nth-child(3n - 1) { border-left:1px solid #dddddd; }

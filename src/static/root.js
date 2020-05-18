@@ -6,10 +6,10 @@ $(document).ready( function () {
     for(const metric_line in $metric){
         if($metric.hasOwnProperty(metric_line)){
             const m_line = $metric[metric_line];
-            /*if(m_line.hasOwnProperty("RoC")){
+            if(m_line.hasOwnProperty("RoC")){
                 roc_vals.push(m_line.RoC);
                 delete m_line.RoC;
-            }*/
+            }
             Object.keys(m_line).forEach(function (a) {
                 title_cols.add(a);
             })
@@ -19,10 +19,32 @@ $(document).ready( function () {
         titles.push({"title": x});
     })
     // set table cols
+    /*
     const tab = $('#results-table').DataTable({
         "data": [],
         "columns": titles
+    });*/
+    // add Q1-Q3 for each col
+    var first_head = "";
+    var second_head = "";
+    title_cols.forEach(function (x) {
+        if(x !== "Name"){
+            first_head += "<th colspan='3'>" + x + "</th>";
+            second_head += "<th class='border-left'>Q1</th>"
+            second_head += "<th>Q2</th>"
+            second_head += "<th class='border-right'>Q3</th>"
+        }else{
+            first_head += '<th rowspan="2">' + x + '</th>';
+        }
     });
+    first_head = "<thead><tr>" + first_head + "</tr>"
+    second_head = "<tr>" + second_head + "</tr></thead>"
+    first_head += second_head
+    document.getElementById("results-table").innerHTML = first_head;
+    console.log(document.getElementById("results-table").innerHTML);
+
+    var tab = $('#results-table').DataTable();
+    console.log("created table")
     // insert vals into table
     var data_points_for_box_plots = {};
     for(const metric_line in $metric){
@@ -37,13 +59,25 @@ $(document).ready( function () {
                 }
                 var keys_per_datatype = Object.keys(x[1]);
                 var vals_per_datatype = Object.values(x[1]);
-                 if(typeof(x) === "number"){
-                     return x.toFixed(6);
+
+                 var sorted_vals = vals_per_datatype.sort();
+                 const len_sor = sorted_vals.length;
+                 let q1 = sorted_vals[(len_sor/4).toFixed() - 1];
+                 let q2 = sorted_vals[(2*len_sor/4).toFixed() - 1];
+                 let q3 = sorted_vals[(3*len_sor/4).toFixed() - 1];
+                 //data_points_for_box_plots["box-plot-" + x[0] + alg_name] = vals_per_datatype;
+                 //return "<div id='box-plot-" + x[0] + alg_name + "'></div>";
+
+                 if(typeof(q1) === "number"){
+                     return [q1.toFixed(4),
+                            q2.toFixed(4),
+                            q3.toFixed(4)]
                  }else{
-                     data_points_for_box_plots["box-plot-" + x[0] + alg_name] = vals_per_datatype;
-                     return "<div id='box-plot-" + x[0] + alg_name + "'></div>";
+                     // is a roc value
                  }
             });
+            prepared_vals = prepared_vals.flat();
+            console.log(prepared_vals);
             while(prepared_vals.length < title_cols.length){
                 prepared_vals.add(-1)
             }

@@ -16,9 +16,9 @@ def splice_per_beat_type(samples, annotations, splice_size=10):
         start_sample = annotations.sample[start_idx]
         end_sample = annotations.sample[end_idx]
 
-        beat_annotations = [annotations.sample[max(ann_idx - 1, 0)],
-                            annotations.sample[ann_idx],
-                            annotations.sample[min(ann_idx + 1, len(annotations.sample) - 1)]]
+        beat_annotations = [annotations.sample[max(ann_idx - 1, 0)] - start_sample,
+                            annotations.sample[ann_idx] - start_sample,
+                            annotations.sample[min(ann_idx + 1, len(annotations.sample) - 1)] - start_sample]
 
         splices.setdefault(label, []).append((samples[start_sample:end_sample], beat_annotations, beat))
     return splices
