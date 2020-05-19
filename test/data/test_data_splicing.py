@@ -55,7 +55,7 @@ class TestManipData(unittest.TestCase):
             if i > 30:
                 break
             print(i, fail_count)
-            ecg_samples = self.samples[i].flatten()
+            ecg_samples = self.samples[i]#.flatten()
             fs = self.fields[i]['fs']
             annotations = self.annotations[i]
 

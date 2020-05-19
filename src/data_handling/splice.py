@@ -13,8 +13,15 @@ def splice_per_beat_type(samples, annotations, splice_size=10):
         start_idx = max(ann_idx - (2 * splice_size // 3), 0)
         end_idx = min(start_idx + splice_size, len(annotations.sample) - 1)
 
-        start_sample = annotations.sample[start_idx]
-        end_sample = annotations.sample[end_idx]
+        # split data between beats or else the algorithm gets confused - even with it gets confused
+        if start_idx > 0:
+            start_sample = (annotations.sample[start_idx] + annotations.sample[start_idx - 1]) // 2
+        else:
+            start_sample = 0
+        if end_idx < len(annotations.sample) - 1:
+            end_sample = (annotations.sample[end_idx] + annotations.sample[end_idx + 1]) // 2
+        else:
+            end_sample = len(samples)
 
         beat_annotations = [annotations.sample[max(ann_idx - 1, 0)] - start_sample,
                             annotations.sample[ann_idx] - start_sample,

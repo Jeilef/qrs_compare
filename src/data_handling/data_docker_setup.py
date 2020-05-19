@@ -9,7 +9,7 @@ from data_handling.splice import splice_per_beat_type
 
 
 class ECGData:
-    __records_per_beat_type__ = 10000
+    __records_per_beat_type__ = 1000
     __base_data_path__ = "/mnt/dsets/physionet"
     __annotation_path__ = os.path.abspath("comparison_data/annotations")
     __signal_path__ = os.path.abspath("comparison_data/signal")
