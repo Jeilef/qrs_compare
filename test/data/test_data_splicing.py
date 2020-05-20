@@ -9,7 +9,7 @@ from wfdb import processing
 from matplotlib import pyplot as plt
 
 from data_handling.splice import splice_per_beat_type, splitup_signal_by_beat_type
-from util.util import get_closest
+from util.util import get_closest, BEAT_CODE_DESCRIPTIONS
 
 
 class TestManipData(unittest.TestCase):
@@ -107,7 +107,7 @@ class TestManipData(unittest.TestCase):
             for p in no_splice_pred:
                 gt = get_closest(annotations.sample, p)
                 gt_type = annotations.symbol[np.where(annotations.sample == gt)[0][0]]
-                if gt_type == 'N' or not gt_type.isalpha():
+                if gt_type == 'N' or gt_type not in BEAT_CODE_DESCRIPTIONS:
                     continue
                 record_name = gt_type + "_org"
                 skew_per_record.setdefault(record_name, []).append(p - gt)

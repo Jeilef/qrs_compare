@@ -7,43 +7,31 @@
     {% block styles %}
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
         <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.20/css/jquery.dataTables.css">
-        <link rel="stylesheet" type="text/css" href={{url_for('static', filename="root.css")}}>
+        <link rel="stylesheet" type="text/css" href={{url_for('static', filename="details.css")}}>
     {% endblock %}
 {% endblock %}
 
 
 {% block body %}
     <div class="container-fluid">
-    <div class="row">
-        <h5>Please select a .zip file for evaluation. Has to contain a setup.sh file for deployment on a Linux VM.</h5>
-        <form class="input-group" method="post" enctype="multipart/form-data">
-          <div class="input-group-prepend">
-            <input class="input-group-text" type="submit" value="Upload">
-          </div>
-          <div class="custom-file">
-            <input type="file" class="custom-file-input" name="file" id="inputGroupFile01" aria-describedby="inputGroupFileAddon01">
-            <label class="custom-file-label" for="inputGroupFile01">Choose file</label>
-          </div>
-        </form>
-    </div>
-        <p></p>
-    <div class="row">
-        <div class="col-md-12">
-        <table class="display" id="results-table" style="width:100%">
-        </table>
-        </div>
-    </div>
-    <!-- <div id="tester" style="width:700px;height:700px;"></div> -->
+        <div class="row"><div id='bar-chart-ppv'><!-- Plotly chart will be drawn inside this DIV --></div></div>
+        <div class="row"><div id='bar-chart-sens'><!-- Plotly chart will be drawn inside this DIV --></div></div>
+        <div class="row"><div id='bar-chart-f1'><!-- Plotly chart will be drawn inside this DIV --></div></div>
+        <div class="row"><div id='bar-chart-mse'><!-- Plotly chart will be drawn inside this DIV --></div></div>
+        <div class="row"><div id='bar-chart-mae'><!-- Plotly chart will be drawn inside this DIV --></div></div>
+        <div class="row"><div id='bar-chart-me'><!-- Plotly chart will be drawn inside this DIV --></div></div>
+        <div class="row"><div id='bar-chart-dynthres'><!-- Plotly chart will be drawn inside this DIV --></div></div>
     {% block scripts %}
         <script type=text/javascript>
           const $metric = {{ metrics|safe }}
+          const $code_mapping = {{ code_mapping|safe }}
         </script>
         <script type="text/javascript" src="https://cdn.plot.ly/plotly-latest.min.js"></script>
         <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
         <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.20/js/jquery.dataTables.js"></script>
-        <script type="module" charset="UTF-8" src="{{ url_for('static', filename='root.js') }}"></script>
+        <script type="application/javascript" charset="UTF-8" src="{{ url_for('static', filename='details.js') }}"></script>
     {% endblock %}
     </div>
 {% endblock %}

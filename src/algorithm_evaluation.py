@@ -13,11 +13,16 @@ from metrics.metric import MeanSquaredError, MeanAbsoluteError, MeanError, Dynam
 def read_evaluated_algorithms():
     algorithm_metrics = []
     for alg_subdir in os.listdir("algorithms"):
-        m_file_path = os.path.join("algorithms", alg_subdir, "evaluation", "metrics.json")
-        if os.path.isdir(os.path.join("algorithms", alg_subdir)) and os.path.exists(m_file_path):
-            with open(m_file_path) as m_file:
-                algorithm_metrics.append(json.load(m_file))
+        read_single_algorithm_results(alg_subdir)
+        algorithm_metrics.append(read_single_algorithm_results(alg_subdir))
     return algorithm_metrics
+
+
+def read_single_algorithm_results(alg_subdir):
+    m_file_path = os.path.join("algorithms", alg_subdir, "evaluation", "metrics.json")
+    if os.path.isdir(os.path.join("algorithms", alg_subdir)) and os.path.exists(m_file_path):
+        with open(m_file_path) as m_file:
+            return json.load(m_file)
 
 
 def evaluate_algorithm(alg_store):

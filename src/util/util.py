@@ -1,5 +1,25 @@
 import bisect
 
+BEAT_CODE_DESCRIPTIONS = {
+    "N": "Normal beat",
+    "L": "Left bundle branch block beat",
+    "R": "Right bundle branch block beat",
+    "B": "Bundle branch block beat (unspecified)",
+    "A": "Atrial premature beat",
+    "a": "Aberrated atrial premature beat",
+    "J": "Nodal (junctional) premature beat",
+    "S": "Supraventricular premature or ectopic beat (atrial or nodal)",
+    "V": "Premature ventricular contraction",
+    "r": "R-on-T premature ventricular contraction",
+    "F": "Fusion of ventricular and normal beat",
+    "e": "Atrial escape beat",
+    "j": "Nodal (junctional) escape beat",
+    "n": "Supraventricular escape beat (atrial or nodal)",
+    "E": "Ventricular escape beat",
+    "f": "Fusion of paced and normal beat",
+    "Q": "Unclassifiable beat"
+}
+
 
 def get_closest(a, x):
     """
@@ -18,3 +38,7 @@ def get_closest(a, x):
         return a[idx - 1]
     else:
         return a[idx]
+
+
+def mapper_beat_code_to_desciption(code):
+    return BEAT_CODE_DESCRIPTIONS[code]

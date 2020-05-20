@@ -4,9 +4,10 @@ from flask import Flask, render_template, flash, request, redirect, url_for, Blu
 from werkzeug.utils import secure_filename
 from multiprocessing import Pool
 
-from algorithm_evaluation import evaluate_algorithm, read_evaluated_algorithms
+from algorithm_evaluation import evaluate_algorithm, read_evaluated_algorithms, read_single_algorithm_results
 from algorithm_store import AlgorithmStore
 from docker_execution import setup_docker
+from util.util import BEAT_CODE_DESCRIPTIONS
 
 UPLOAD_FOLDER = "algorithms"
 if not os.path.exists(UPLOAD_FOLDER):
@@ -55,9 +56,14 @@ def reeval(metrics=None):
     alg_stores = AlgorithmStore.for_all_existing(app.config['UPLOAD_FOLDER'])
     for alg_store in alg_stores:
         evaluate_algorithm(alg_store)
-    #with Pool(len(alg_stores)) as p:
-    #    p.map(evaluate_algorithm, alg_stores)
 
     ms = read_evaluated_algorithms()
     print(ms)
     return render_template('root.html', metrics=json.dumps(ms).replace("'", '"'))
+
+
+@app.route('/details/<algname>')
+def details(algname, metrics=None, code_mapping=None):
+    metric_values = read_single_algorithm_results(algname)
+    return render_template('details.html', metrics=json.dumps(metric_values).replace("'", '"'),
+                           code_mapping=json.dumps(BEAT_CODE_DESCRIPTIONS).replace("'", '"'))
