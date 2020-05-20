@@ -68,9 +68,6 @@ $(document).ready( function () {
             }
             Object.keys(m_line).forEach(function (a) {
                 title_cols.add(a);
-                if(a === "Name"){
-                    title_cols.add("Beat Type")
-                }
             })
         }
     }
@@ -87,7 +84,7 @@ $(document).ready( function () {
     var first_head = "";
     var second_head = "";
     title_cols.forEach(function (x) {
-        if(x !== "Name" && x !== "Beat Type"){
+        if(x !== "Name"){
             first_head += "<th colspan='3'>" + x + "</th>";
             second_head += "<th class='border-left'>Q1</th>"
             second_head += "<th>Q2</th>"
@@ -101,46 +98,7 @@ $(document).ready( function () {
     first_head += second_head
     document.getElementById("results-table").innerHTML = first_head;
 
-    // init table and add column grouping
-    var groupColumn = 0;
-    var tab = $('#results-table').DataTable({
-        "columnDefs": [
-            { "visible": false, "targets": 0 }
-        ],
-        "order": [[ groupColumn, 'asc' ]],
-        "drawCallback": function ( settings ) {
-            var api = this.api();
-            var rows = api.rows( {page:'current'} ).nodes();
-            var last=null;
-            var last_row = 0;
-            //var prepared_vals = rows.map(map_to_table_format);
-            // prepared_vals = prepared_vals.flat();
-            //while(prepared_vals.length < title_cols.length){
-            //    prepared_vals.add(-1)
-            //}
-
-            api.column(groupColumn, {page:'current'} ).data().each( function ( group, i ) {
-                if (last !== group) {
-                    var data_vals = []
-                    for(var j=last_row; j<=i; j++){
-                        console.log(j, api.row(j).data())
-                        data_vals.push(api.row(j).data());
-                    }
-                    var prepared_vals = map_to_table_format(data_vals);
-                    console.log("prepared vals: ", prepared_vals);
-                    var group_line = "";
-                    prepared_vals.forEach(function (x) {
-                        group_line += '<td>' + x + '</td>'
-                    })
-                    $(rows).eq(i).before(
-                        '<tr class="group">' + group_line + '</tr>'
-                    );
-                    last_row = i;
-                    last = group;
-                }
-            })
-        }
-    });
+    var tab = $('#results-table').DataTable();
     console.log("created table")
     // insert vals into table
     var data_points_for_box_plots = {};
@@ -149,10 +107,40 @@ $(document).ready( function () {
             var m_line = $metric[metric_line];
             var alg_name = m_line.Name;
             var vals = Object.entries(m_line);
-            var split_up_values = spead_data_for_detail_rows(vals);
-            split_up_values.forEach(function (sv) {
-                tab.row.add(sv).draw(false);
-            })
+            var prepared_vals = vals.map(function (x) {
+                 // split up data per datatype
+                 if(x[0] === "Name"){
+                     return x[1];
+                 }
+                 var keys_per_datatype = Object.keys(x[1]);
+                 var vals_per_datatype = Object.values(x[1]);
+                 vals_per_datatype = vals_per_datatype.map(function (x) {
+                    return parseFloat(x);
+                 })
+                 var sorted_vals = vals_per_datatype.sort(function (x, y) {
+                    return x < y;
+                 });
+                 const len_sor = sorted_vals.length;
+                 let q1 = sorted_vals[(len_sor/4).toFixed() - 1];
+                 let q2 = sorted_vals[(2*len_sor/4).toFixed() - 1];
+                 let q3 = sorted_vals[(3*len_sor/4).toFixed() - 1];
+                 //data_points_for_box_plots["box-plot-" + x[0] + alg_name] = vals_per_datatype;
+                 //return "<div id='box-plot-" + x[0] + alg_name + "'></div>";
+
+                 if(typeof(q1) === "number"){
+                     return [q1.toFixed(4),
+                            q2.toFixed(4),
+                            q3.toFixed(4)]
+                 }else{
+                     // is a roc value
+                 }
+            });
+            prepared_vals = prepared_vals.flat();
+            console.log(prepared_vals);
+            while(prepared_vals.length < title_cols.length){
+                prepared_vals.add(-1)
+            }
+            tab.row.add(prepared_vals).draw(false);
         }
     }
     create_boxplots_for_datapoints(data_points_for_box_plots);
