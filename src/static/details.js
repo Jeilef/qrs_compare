@@ -17,6 +17,38 @@ function ppv_chart() {
     Plotly.newPlot('bar-chart-ppv', data, layout);
 }
 
+function windowed_ppv_chart() {
+    const data = create_trace_for_metric($metric["Windowed PPV"]);
+    const layout = {
+        title: 'Windowed PPV values per beat type',
+        width: 1500,
+        height: 500,
+        barmode: 'stack',
+        showlegend: true,
+        legend: {
+            x: 1,
+            y: 0.5
+        }
+    };
+    Plotly.newPlot('bar-chart-ppv-windowed', data, layout);
+}
+
+function windowed_spec_chart() {
+    const data = create_trace_for_metric($metric["Windowed Speci"]);
+    const layout = {
+        title: 'Windowed Specificity values per beat type',
+        width: 1500,
+        height: 500,
+        barmode: 'stack',
+        showlegend: true,
+        legend: {
+            x: 1,
+            y: 0.5
+        }
+    };
+    Plotly.newPlot('bar-chart-spec-windowed', data, layout);
+}
+
 function sens_chart() {
     const data = create_trace_for_metric($metric.Sens);
     const layout = {
@@ -49,6 +81,23 @@ function f1_chart() {
         }
     };
     Plotly.newPlot('bar-chart-f1', data, layout);
+}
+
+function windowed_f1_chart() {
+    const data = create_trace_for_metric($metric["Windowed F1"]);
+    const layout = {
+        title: 'Windowed F1 Score values per beat type',
+        barmode: 'stack',
+        width: 1500,
+        height: 500,
+        showlegend: true,
+        legend: {
+            x: 1,
+            y: 0.5,
+            xanchor: 'left'
+        }
+    };
+    Plotly.newPlot('bar-chart-f1-windowed', data, layout);
 }
 
 function me_chart() {
@@ -88,7 +137,7 @@ function mse_chart() {
 function mae_chart() {
     const data = create_trace_for_metric($metric["MAE"]);
     const layout = {
-        title: 'Mean Squared Error per beat type',
+        title: 'Mean Absolute Error per beat type',
         barmode: 'stack',
         width: 1500,
         height: 500,
@@ -102,13 +151,52 @@ function mae_chart() {
     Plotly.newPlot('bar-chart-mae', data, layout);
 }
 
+function roc_chart() {
+    const data = create_trace_for_tuple_metric($metric["RoC"]);
+    const layout = {
+        title: 'PPV and FPR per beat type',
+        //barmode: 'group',
+        width: 1800,
+        height: 500,
+        showlegend: true,
+        legend: {
+            x: 1,
+            y: 0.5,
+            xanchor: 'left'
+        }
+    };
+    Plotly.newPlot('bar-chart-roc', data.flat(), layout);
+}
+
+function windowed_roc_chart() {
+    const data = create_trace_for_tuple_metric($metric["Windowed PPV/Spec"]);
+    const layout = {
+        title: 'Windowed PPV and FPR per beat type',
+        //barmode: 'group',
+        width: 1800,
+        height: 500,
+        showlegend: true,
+        legend: {
+            x: 1,
+            y: 0.5,
+            xanchor: 'left'
+        }
+    };
+    Plotly.newPlot('bar-chart-roc-windowed', data.flat(), layout);
+}
+
 $(document).ready(function () {
     ppv_chart();
+    //windowed_ppv_chart();
+    //windowed_spec_chart();
     sens_chart();
     f1_chart()
+    windowed_f1_chart()
     me_chart()
     mse_chart()
     mae_chart()
+    roc_chart()
+    windowed_roc_chart()
 })
 
 function create_trace_for_metric(metric){
@@ -119,7 +207,7 @@ function create_trace_for_metric(metric){
     var data = [];
     const values_to_str = metric_values.map((x) => String(x.toFixed(4)));
     names.forEach(function (x, i) {
-        var trace = {
+        const trace = {
             name: names[i] + ": " + map_beat_type_to_description(names[i]),
             x: [x],
             y: [metric_values[i]],
@@ -139,6 +227,48 @@ function create_trace_for_metric(metric){
             }
         }
         data.push(trace);
+    })
+    return data
+}
+
+function create_trace_for_tuple_metric(metric){
+    chart_num++;
+    // const sorted_values = [, ]  //sort_metric_values(metric);
+    const names = Object.keys(metric);
+    const metric_values = Object.values(metric);
+    var data = [];
+    const values_to_str = metric_values.map((x) => x.map((y) => String(y.toFixed(4))));
+    const categories = ["PPV", "FPR"]
+    names.forEach(function (x, i) {
+        [metric_values[i]].flat().forEach(function (m_val, idx) {
+            let name;
+            if(idx === 0){
+                name = names[i] + ": " + map_beat_type_to_description(names[i])
+            }else{
+                name = ""
+            }
+            const trace1 = {
+                name: name,
+                x: [[x], [categories[idx]]],
+                y: [m_val],
+                xaxis: "x" + String(chart_num),
+                yaxis: "y" + String(chart_num),
+                type: 'bar',
+                text: values_to_str[i][idx],
+                textposition: 'auto',
+                hoverinfo: 'none',
+                marker: {
+                    color: 'rgb(158,202,225)',
+                    opacity: 0.6,
+                    line: {
+                        color: 'rgb(8,48,107)',
+                        width: 1.5
+                    }
+                }
+            }
+            data.push(trace1);
+
+        })
     })
     return data
 }

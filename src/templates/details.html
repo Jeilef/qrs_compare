@@ -15,12 +15,17 @@
 {% block body %}
     <div class="container-fluid">
         <div class="row"><div id='bar-chart-ppv'><!-- Plotly chart will be drawn inside this DIV --></div></div>
+        <div class="row"><div id='bar-chart-ppv-windowed'><!-- Plotly chart will be drawn inside this DIV --></div></div>
+        <div class="row"><div id='bar-chart-spec-windowed'><!-- Plotly chart will be drawn inside this DIV --></div></div>
         <div class="row"><div id='bar-chart-sens'><!-- Plotly chart will be drawn inside this DIV --></div></div>
         <div class="row"><div id='bar-chart-f1'><!-- Plotly chart will be drawn inside this DIV --></div></div>
+        <div class="row"><div id='bar-chart-f1-windowed'><!-- Plotly chart will be drawn inside this DIV --></div></div>
         <div class="row"><div id='bar-chart-mse'><!-- Plotly chart will be drawn inside this DIV --></div></div>
         <div class="row"><div id='bar-chart-mae'><!-- Plotly chart will be drawn inside this DIV --></div></div>
         <div class="row"><div id='bar-chart-me'><!-- Plotly chart will be drawn inside this DIV --></div></div>
         <div class="row"><div id='bar-chart-dynthres'><!-- Plotly chart will be drawn inside this DIV --></div></div>
+        <div class="row"><div id='bar-chart-roc'><!-- Plotly chart will be drawn inside this DIV --></div></div>
+        <div class="row"><div id='bar-chart-roc-windowed'><!-- Plotly chart will be drawn inside this DIV --></div></div>
     {% block scripts %}
         <script type=text/javascript>
           const $metric = {{ metrics|safe }}

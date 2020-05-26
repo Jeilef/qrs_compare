@@ -6,8 +6,10 @@ from functools import reduce
 
 from wfdb import rdann
 
-from metrics.classification_metric import PositivePredictiveValue, Sensitivity, F1, RoCCurve
+from metrics.classification_metric import PositivePredictiveValue, Sensitivity, F1, RoCCurve, PPVSpec
 from metrics.metric import MeanSquaredError, MeanAbsoluteError, MeanError, DynamicThreshold, join
+from metrics.window_based_classification_metric import WindowedF1Score, WindowedSpecificity, WindowedPPV, \
+    WindowedPPVSpec
 
 
 def read_evaluated_algorithms():
@@ -27,8 +29,8 @@ def read_single_algorithm_results(alg_subdir):
 
 def evaluate_algorithm(alg_store):
     print("Evaluating...")
-    acc_metrics = [RoCCurve, PositivePredictiveValue, Sensitivity, F1, MeanSquaredError, MeanAbsoluteError, MeanError,
-                   DynamicThreshold]
+    acc_metrics = [WindowedF1Score, PositivePredictiveValue, Sensitivity, F1, MeanSquaredError, MeanAbsoluteError,
+                   MeanError, DynamicThreshold, PPVSpec, WindowedPPVSpec]
 
     loaded_data = list(read_ann_files(alg_store))
 

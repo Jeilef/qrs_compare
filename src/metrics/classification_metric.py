@@ -194,7 +194,22 @@ class RoCCurve(ClassificationMetric):
 
     def distance_to_upper_left_corner(self, x):
         fi, se = x
-        return math.sqrt(fi ** 2 + (1 - se) ** 2)
+        return math.sqrt((1 - fi) ** 2 + se ** 2)
 
     def ppv_fpr(self, tp, fp, tn, fn):
         return tp / max(tp + fn, 0.00001), fp / max(fp + tn, 0.00001)
+
+
+class PPVSpec(RoCCurve):
+    def compute(self):
+        metrics_per_tol = []
+        for tp, fp, tn, fn in zip(self.tp_by_tol, self.fp_by_tol, self.tn_by_tol, self.fn_by_tol):
+            metrics_per_tol.append(self.ppv_spec(tp, fp, tn, fn))
+        return min(metrics_per_tol, key=self.distance_to_upper_right_corner)
+
+    def distance_to_upper_right_corner(self, x):
+        fi, se = x
+        return math.sqrt((1 - fi) ** 2 + (1 - se) ** 2)
+
+    def ppv_spec(self, tp, fp, tn, fn):
+        return tp / max(tp + fn, 0.00001), tn / max(fp + tn, 0.00001)
