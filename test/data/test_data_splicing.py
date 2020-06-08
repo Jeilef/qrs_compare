@@ -42,6 +42,18 @@ class TestManipData(unittest.TestCase):
         self.annotations = annotations
         print("Finished Setup")
 
+    def test_amount_of_data(self):
+        num_per_type = {}
+        ignored_symbols = set()
+        for a in self.annotations:
+            for symb in a.symbol:
+                if symb in BEAT_CODE_DESCRIPTIONS:
+                    num_per_type.setdefault(symb, 0)
+                    num_per_type[symb] += 1
+                else:
+                    ignored_symbols.add(symb)
+        print(num_per_type)
+
     def test_classification_metrics_match_if_spliced_gqrs(self):
         self.classification_metrics_match_if_spliced(wfdb.processing.gqrs_detect)
 

@@ -10,7 +10,7 @@ from util.util import BEAT_CODE_DESCRIPTIONS
 def splice_per_beat_type(samples, annotations, splice_size=10):
     splices = {}
     for ann_idx, (beat, label) in enumerate(zip(annotations.sample, annotations.symbol)):
-        if label == 'N' or label not in BEAT_CODE_DESCRIPTIONS:
+        if label not in BEAT_CODE_DESCRIPTIONS:
             continue
         start_idx = max(ann_idx - (2 * splice_size // 3), 0)
         end_idx = min(start_idx + splice_size, len(annotations.sample) - 1)
@@ -36,7 +36,7 @@ def splice_per_beat_type(samples, annotations, splice_size=10):
 def splitup_signal_by_beat_type(samples, annotations):
     parts = {}
     for ann_idx, (beat, label) in enumerate(zip(annotations.sample, annotations.symbol)):
-        if label == 'N' or label not in BEAT_CODE_DESCRIPTIONS:
+        if label not in BEAT_CODE_DESCRIPTIONS:
             continue
         special_beat, rel_ann = cut_out_beat_from_annotation(samples, annotations, ann_idx)
         parts.setdefault(label, []).append((special_beat, [rel_ann]))

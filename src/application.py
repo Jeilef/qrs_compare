@@ -42,7 +42,6 @@ def root(metrics=None):
             print(setup_msg)
             # return redirect(url_for('uploaded_file', filename="filename"))
     ms = read_evaluated_algorithms()
-    print(ms)
     return render_template('root.html', metrics=json.dumps(ms).replace("'", '"'))
 
 
@@ -58,7 +57,6 @@ def reeval(metrics=None):
         evaluate_algorithm(alg_store)
 
     ms = read_evaluated_algorithms()
-    print(ms)
     return render_template('root.html', metrics=json.dumps(ms).replace("'", '"'))
 
 

@@ -9,7 +9,7 @@ from data_handling.splice import splice_per_beat_type
 
 
 class ECGData:
-    __records_per_beat_type__ = 1000
+    __records_per_beat_type__ = 10000
     __base_data_path__ = "/mnt/dsets/physionet"
     __annotation_path__ = os.path.abspath("comparison_data/annotations")
     __signal_path__ = os.path.abspath("comparison_data/signal")
@@ -28,23 +28,31 @@ class ECGData:
             if 'mimic3wdb' in dirpath:
                 continue
             if "RECORDS" in filenames:
+                print(dirpath, subdir)
                 with open(os.path.join(dirpath, "RECORDS"), 'r') as f:
                     records = list(f.readlines())
                     for r in records:
-                        ann_file_name = os.path.join(dirpath, r.rstrip('\n'))
-                        ann_file_exists = os.path.exists(ann_file_name + '.atr') and os.path.isfile(
-                            ann_file_name + '.atr')
-                        rec_file_name = os.path.join(dirpath, r.rstrip('\n'))
-                        rec_file_exists = os.path.exists(ann_file_name + '.dat') and os.path.isfile(
-                            ann_file_name + '.dat')
-                        if ann_file_exists and rec_file_exists:
-                            ann = wfdb.rdann(ann_file_name, extension='atr')
+                        self.process_record(dirpath, r)
+                    #with mp.Pool(processes=20) as pool:
+                    #    pool.starmap(self.process_record, list(zip([dirpath]*len(records), records)))
+                for k in self.test_samples:
+                    print(k, len(self.test_samples[k]))
 
-                            sample, meta = wfdb.rdsamp(rec_file_name, channels=[0])
-                            meta['file_name'] = r.rstrip('\n')
+    def process_record(self, dirpath, r):
+        ann_file_name = os.path.join(dirpath, r.rstrip('\n'))
+        ann_file_exists = os.path.exists(ann_file_name + '.atr') and os.path.isfile(
+            ann_file_name + '.atr')
+        rec_file_name = os.path.join(dirpath, r.rstrip('\n'))
+        rec_file_exists = os.path.exists(ann_file_name + '.dat') and os.path.isfile(
+            ann_file_name + '.dat')
+        if ann_file_exists and rec_file_exists:
+            ann = wfdb.rdann(ann_file_name, extension='atr')
 
-                            spliced_data = splice_per_beat_type(sample, ann, 10)
-                            self.update_data_with_splices(spliced_data, meta)
+            sample, meta = wfdb.rdsamp(rec_file_name, channels=[0])
+            meta['file_name'] = r.rstrip('\n')
+
+            spliced_data = splice_per_beat_type(sample, ann, 10)
+            self.update_data_with_splices(spliced_data, meta)
 
     def update_data_with_splices(self, spliced_data, meta):
         for symbol, splices in spliced_data.items():

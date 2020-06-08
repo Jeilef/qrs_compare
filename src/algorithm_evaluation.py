@@ -15,7 +15,6 @@ from metrics.window_based_classification_metric import WindowedF1Score, Windowed
 def read_evaluated_algorithms():
     algorithm_metrics = []
     for alg_subdir in os.listdir("algorithms"):
-        read_single_algorithm_results(alg_subdir)
         algorithm_metrics.append(read_single_algorithm_results(alg_subdir))
     return algorithm_metrics
 
@@ -45,6 +44,7 @@ def evaluate_algorithm(alg_store):
 
 def read_ann_files(alg_store):
     file_names = os.listdir(alg_store.groundtruth_dir())
+    print(len(file_names), "file names")
     with cf.ProcessPoolExecutor(max_workers=10) as pool:
         prepared_ann_tuples = list(pool.map(read_ann_file, [alg_store] * len(file_names), file_names))
     return prepared_ann_tuples
@@ -62,12 +62,12 @@ def read_ann_file(alg_store, ann_file):
         adapted_end = (anno[1] + anno[2]) / 2 if anno[1] != anno[2] else pred_ann_ref.sample[-1]
         samples = list(filter(lambda s: adapted_start <= s <= adapted_end, pred_ann_ref.sample))
         if not samples:
-            print("Filtered", anno, pred_ann_ref.sample, len(pred_ann_ref.sample))
+            # print("Filtered", anno, pred_ann_ref.sample, len(pred_ann_ref.sample))
             samples = [-1]
         return [anno[1]], [gt_ann_ref.symbol[1]], samples, gt_ann_ref.fs, ann_file_type
     else:
         # occurs if algorithm does not output any annotation
-        print("No Output")
+        # print("No Output")
         pred_ann_ref_sample = [-1]
         gt_ann_ref = rdann(gt_ann_file, 'atr')
         anno = gt_ann_ref.sample

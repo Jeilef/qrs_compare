@@ -114,8 +114,9 @@ class F1(ClassificationMetric):
 
 class RoCCurve(ClassificationMetric):
     __abbrev__ = "RoC"
+    __parts__ = 10
 
-    def __init__(self, parts=5):
+    def __init__(self, parts=__parts__):
         super().__init__()
         self.parts = parts
         self.tp_by_tol = [0 for _ in range(parts)]
@@ -132,8 +133,8 @@ class RoCCurve(ClassificationMetric):
         return self
 
     def match_annotations(self, true_samples, true_symbols, test_samples, sampling_frequency=360):
-        window_sizes = list(range(1, sampling_frequency - (sampling_frequency % self.parts),
-                                  sampling_frequency // self.parts))
+        sf = sampling_frequency // 5
+        window_sizes = list(range(1, sf - (sf % self.parts), sf // self.parts))
         confusion_values = map(self.match_classification_annotations,
                                list([true_samples] * len(window_sizes)),
                                list([true_symbols] * len(window_sizes)),
@@ -149,7 +150,7 @@ class RoCCurve(ClassificationMetric):
         return self.compute()
 
     def match_classification_annotations(self, true_samples, true_symbols, test_samples, tolerance):
-        tp, fp, fn, tn = [], [], [], []
+        tp, fp, fn, tn = 0, 0, 0, 0
         for true_beat in true_samples:
             left_pred_idx = bisect_right(test_samples, true_beat) - 1
             right_pred_idx = bisect_left(test_samples, true_beat)
@@ -164,11 +165,14 @@ class RoCCurve(ClassificationMetric):
             if min(left_dist_to_beat, right_dist_to_beat) <= tolerance:
                 num_tp = min(abs(test_samples[closest_pred_idx] - (true_beat - tolerance)),
                              abs(test_samples[closest_pred_idx] - (true_beat + tolerance)))
-                tp.extend([closest_pred_idx] * int(num_tp))
+                tp += int(num_tp)
             # are there some windows where no prediction lies
-            if left_dist_to_beat + right_dist_to_beat > tolerance:
-                num_fn = min(right_dist_to_beat + left_dist_to_beat - tolerance, tolerance + 1)
-                fn.extend([true_beat] * int(num_fn))
+            if left_pred_idx != right_pred_idx and left_dist_to_beat + right_dist_to_beat > tolerance:
+                num_fn = min(min(right_dist_to_beat, left_dist_to_beat) - 1, tolerance + 1)
+               # print(true_samples, test_samples, tolerance, num_fn)
+                fn += int(num_fn)
+            if left_pred_idx == right_pred_idx:
+                fn += left_dist_to_beat
 
         for pred_beat in test_samples:
             next_beat_idx = bisect_right(true_samples, pred_beat)
@@ -180,11 +184,11 @@ class RoCCurve(ClassificationMetric):
             num_fp = min(abs(previous_beat - pred_beat),
                          abs(next_beat - pred_beat),
                          tolerance + 1)
-            fp.extend([pred_beat] * int(num_fp))
+            fp += int(num_fp)
 
-        num_tn = max(true_samples[-1], test_samples[-1]) - len(tp) - len(fp) - len(fn) + 1
-        tn.extend([0] * int(num_tn))
-        return len(tp), len(fp), len(tn), len(fn)
+        num_tn = max(true_samples[-1], test_samples[-1]) - tp - fp - fn + 1
+        tn += max(int(num_tn), 0)
+        return tp, fp, tn, fn
 
     def compute(self):
         metrics_per_tol = []
@@ -213,3 +217,31 @@ class PPVSpec(RoCCurve):
 
     def ppv_spec(self, tp, fp, tn, fn):
         return tp / max(tp + fn, 0.00001), tn / max(fp + tn, 0.00001)
+
+
+class TP(RoCCurve):
+    __abbrev__ = "TP"
+
+    def compute(self):
+        return self.tp_by_tol
+
+
+class FP(RoCCurve):
+    __abbrev__ = "FP"
+
+    def compute(self):
+        return self.fp_by_tol
+
+
+class TN(RoCCurve):
+    __abbrev__ = "TN"
+
+    def compute(self):
+        return self.tn_by_tol
+
+
+class FN(RoCCurve):
+    __abbrev__ = "FN"
+
+    def compute(self):
+        return self.fn_by_tol

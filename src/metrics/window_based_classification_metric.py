@@ -20,7 +20,7 @@ class WindowedConfusionMatrix(RoCCurve):
             left_border = min(left_border, len(test_samples) - 1)
             left_dist_to_beat = abs(test_samples[left_border] - true_beat)
             right_dist_to_beat = abs(test_samples[right_border] - true_beat)
-
+            # TODO potential bug if only one predictino and left = right
             if left_dist_to_beat <= tolerance or right_dist_to_beat <= tolerance:
                 tp += 1
             elif left_dist_to_beat > tolerance and right_dist_to_beat > tolerance:

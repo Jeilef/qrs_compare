@@ -9,13 +9,14 @@ class AlgorithmStore:
     __base_path__ = os.path.abspath("algorithms")
     __general_data_path__ = os.path.abspath("comparison_data")
 
-    def __init__(self, alg_name, base_path=__base_path__):
+    def __init__(self, alg_name, base_path=__base_path__, general_data_path=__general_data_path__):
         """
         :param alg_name: name of the algorithm
         """
 
         self.alg_name = alg_name
         self.__base_path__ = os.path.abspath(base_path)
+        self.__general_data_path__ = general_data_path
 
     @classmethod
     def for_new_alg(cls, zip_file, base_path=__base_path__):
@@ -29,10 +30,10 @@ class AlgorithmStore:
         return alg_store
 
     @classmethod
-    def for_all_existing(cls, base_path=__base_path__):
+    def for_all_existing(cls, base_path=__base_path__, general_data_path=__general_data_path__):
         alg_stores = []
         for alg_dir in os.listdir(base_path):
-            alg_stores.append(cls(alg_dir, base_path))
+            alg_stores.append(cls(alg_dir, base_path, general_data_path))
         return alg_stores
 
     def create_hierarchy(self):
