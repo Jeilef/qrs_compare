@@ -4,12 +4,13 @@ from bisect import bisect_right, bisect_left
 from metrics.classification_metric import RoCCurve
 
 
-class WindowedConfusionMatrix(RoCCurve):
+class FixedWindow(RoCCurve):
     def __init__(self):
         self.parts = 10
         super().__init__(self.parts)
 
     def match_classification_annotations(self, true_samples, true_symbols, test_samples, tolerance):
+        tolerance = tolerance // 2  # necessary because it is to left and to the right
         tp, fp, tn, fn = 0, 0, 0, 0
         last_right_border = -1
         for true_beat in true_samples:
@@ -20,13 +21,12 @@ class WindowedConfusionMatrix(RoCCurve):
             left_border = min(left_border, len(test_samples) - 1)
             left_dist_to_beat = abs(test_samples[left_border] - true_beat)
             right_dist_to_beat = abs(test_samples[right_border] - true_beat)
-            # TODO potential bug if only one predictino and left = right
             if left_dist_to_beat <= tolerance or right_dist_to_beat <= tolerance:
                 tp += 1
             elif left_dist_to_beat > tolerance and right_dist_to_beat > tolerance:
                 fn += 1
 
-            if left_border > last_right_border + 1:
+            if left_border > last_right_border + 1 or left_dist_to_beat > tolerance and last_right_border == -1:
                 # not exactly the next predicted beat after last interval
                 fp += 1
             elif left_border == last_right_border + 1:
@@ -35,10 +35,12 @@ class WindowedConfusionMatrix(RoCCurve):
             last_right_border = right_border
         if test_samples[-1] > true_samples[-1] + tolerance:
             fp += 1
+        else:
+            tn += 1
         return tp, fp, tn, fn
 
 
-class WindowedF1Score(WindowedConfusionMatrix):
+class WindowedF1Score(FixedWindow):
     __abbrev__ = "Windowed F1"
 
     def compute(self):
@@ -53,7 +55,7 @@ class WindowedF1Score(WindowedConfusionMatrix):
         return 2 * tp / (2 * tp + fn + fp)
 
 
-class WindowedPPV(WindowedConfusionMatrix):
+class WindowedPPV(FixedWindow):
     __abbrev__ = "Windowed PPV"
 
     def compute(self):
@@ -68,7 +70,7 @@ class WindowedPPV(WindowedConfusionMatrix):
         return tp / (fp + tp)
 
 
-class WindowedSpecificity(WindowedConfusionMatrix):
+class WindowedSpecificity(FixedWindow):
     __abbrev__ = "Windowed Speci"
 
     def compute(self):
@@ -83,7 +85,7 @@ class WindowedSpecificity(WindowedConfusionMatrix):
         return tn / (fp + tn)
 
 
-class WindowedPPVSpec(WindowedConfusionMatrix):
+class WindowedPPVSpec(FixedWindow):
     __abbrev__ = "Windowed PPV/Spec"
 
     def compute(self):
@@ -98,3 +100,31 @@ class WindowedPPVSpec(WindowedConfusionMatrix):
 
     def ppv_spec(self, tp, fp, tn, fn):
         return tp / max(tp + fn, 0.00001), tn / max(fp + tn, 0.00001)
+
+
+class WinTP(FixedWindow):
+    __abbrev__ = "Fixed Thesh. TP"
+
+    def compute(self):
+        return self.tp_by_tol
+
+
+class WinFP(FixedWindow):
+    __abbrev__ = "Fixed Thesh. FP"
+
+    def compute(self):
+        return self.fp_by_tol
+
+
+class WinTN(FixedWindow):
+    __abbrev__ = "Fixed Thesh. TN"
+
+    def compute(self):
+        return self.tn_by_tol
+
+
+class WinFN(FixedWindow):
+    __abbrev__ = "Fixed Thesh. FN"
+
+    def compute(self):
+        return self.fn_by_tol

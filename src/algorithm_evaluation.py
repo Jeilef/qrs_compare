@@ -15,7 +15,9 @@ from metrics.window_based_classification_metric import WindowedF1Score, Windowed
 def read_evaluated_algorithms():
     algorithm_metrics = []
     for alg_subdir in os.listdir("algorithms"):
-        algorithm_metrics.append(read_single_algorithm_results(alg_subdir))
+        metric_results = read_single_algorithm_results(alg_subdir)
+        if metric_results:
+            algorithm_metrics.append(metric_results)
     return algorithm_metrics
 
 
@@ -63,19 +65,18 @@ def read_ann_file(alg_store, ann_file):
         samples = list(filter(lambda s: adapted_start <= s <= adapted_end, pred_ann_ref.sample))
         if not samples:
             # print("Filtered", anno, pred_ann_ref.sample, len(pred_ann_ref.sample))
-            samples = [-1]
+            samples = [0]
         return [anno[1]], [gt_ann_ref.symbol[1]], samples, gt_ann_ref.fs, ann_file_type
     else:
         # occurs if algorithm does not output any annotation
         # print("No Output")
-        pred_ann_ref_sample = [-1]
+        pred_ann_ref_sample = [0]
         gt_ann_ref = rdann(gt_ann_file, 'atr')
         anno = gt_ann_ref.sample
         return [anno[1]], [gt_ann_ref.symbol[1]], pred_ann_ref_sample, gt_ann_ref.fs, ann_file_type
 
 
 def evaluate_algorithm_with_metric(metric, loaded_data):
-    print("Starting:", metric.__abbrev__)
     workers = mp.cpu_count() // 2
     with cf.ProcessPoolExecutor(max_workers=workers) as pool:
         calc_metrics = list(pool.map(match_for_metric_on_data_part,
@@ -92,7 +93,6 @@ def evaluate_algorithm_with_metric(metric, loaded_data):
         red_metric = reduce(join, metrics)
         typed_metrics[symbol] = red_metric
 
-    print("Finished:", metric.__abbrev__)
     return typed_metrics
 
 

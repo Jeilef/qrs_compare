@@ -151,6 +151,7 @@ class RoCCurve(ClassificationMetric):
 
     def match_classification_annotations(self, true_samples, true_symbols, test_samples, tolerance):
         tp, fp, fn, tn = 0, 0, 0, 0
+        recording_len = 2 * true_samples[-1] - true_samples[-2] if len(true_samples) > 1 else 2 * true_samples[-1]
         for true_beat in true_samples:
             left_pred_idx = bisect_right(test_samples, true_beat) - 1
             right_pred_idx = bisect_left(test_samples, true_beat)
@@ -163,16 +164,23 @@ class RoCCurve(ClassificationMetric):
             closest_pred_idx = left_pred_idx if left_dist_to_beat < right_dist_to_beat else right_pred_idx
             # was the beat found
             if min(left_dist_to_beat, right_dist_to_beat) <= tolerance:
-                num_tp = min(abs(test_samples[closest_pred_idx] - (true_beat - tolerance)),
-                             abs(test_samples[closest_pred_idx] - (true_beat + tolerance)))
-                tp += int(num_tp)
+                if left_pred_idx != right_pred_idx and left_dist_to_beat <= tolerance and right_dist_to_beat <= tolerance:
+                    left_overlap = abs(test_samples[left_pred_idx] - (true_beat - tolerance - 1))
+                    right_overlap = abs(test_samples[right_pred_idx] - (true_beat + tolerance + 1))
+                    overlap = max(0, test_samples[left_pred_idx] + tolerance - (test_samples[right_pred_idx] - tolerance) - 2)
+                    num_tp = left_overlap + right_overlap - overlap
+                    tp += int(num_tp)
+                else:
+                    num_tp = min(abs(test_samples[closest_pred_idx] - (true_beat - tolerance - 1)),
+                                 abs(test_samples[closest_pred_idx] - (true_beat + tolerance + 1)),
+                                 test_samples[closest_pred_idx] + 1)
+                    tp += int(num_tp)
             # are there some windows where no prediction lies
             if left_pred_idx != right_pred_idx and left_dist_to_beat + right_dist_to_beat > tolerance:
                 num_fn = min(min(right_dist_to_beat, left_dist_to_beat) - 1, tolerance + 1)
-               # print(true_samples, test_samples, tolerance, num_fn)
                 fn += int(num_fn)
             if left_pred_idx == right_pred_idx:
-                fn += left_dist_to_beat
+                fn += min(left_dist_to_beat, tolerance + 1)
 
         for pred_beat in test_samples:
             next_beat_idx = bisect_right(true_samples, pred_beat)
@@ -181,12 +189,17 @@ class RoCCurve(ClassificationMetric):
             if previous_beat == pred_beat:
                 continue
             next_beat = true_samples[next_beat_idx] if next_beat_idx != len(true_samples) else previous_beat
+            if next_beat - pred_beat <= tolerance and pred_beat - previous_beat <= tolerance and next_beat != previous_beat:
+                continue
             num_fp = min(abs(previous_beat - pred_beat),
                          abs(next_beat - pred_beat),
-                         tolerance + 1)
+                         tolerance + 1,
+                         recording_len - next_beat)
             fp += int(num_fp)
 
-        num_tn = max(true_samples[-1], test_samples[-1]) - tp - fp - fn + 1
+        num_tn = recording_len - tp - fp - fn + 1
+        if num_tn < 0:
+            print("error:", num_tn, true_samples, test_samples, tolerance)
         tn += max(int(num_tn), 0)
         return tp, fp, tn, fn
 

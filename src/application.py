@@ -42,6 +42,7 @@ def root(metrics=None):
             print(setup_msg)
             # return redirect(url_for('uploaded_file', filename="filename"))
     ms = read_evaluated_algorithms()
+    print(ms)
     return render_template('root.html', metrics=json.dumps(ms).replace("'", '"'))
 
 
