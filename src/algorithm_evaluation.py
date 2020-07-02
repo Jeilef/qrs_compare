@@ -8,7 +8,7 @@ from wfdb import rdann
 
 from metrics.classification_metric import PositivePredictiveValue, Sensitivity, F1, RoCCurve, PPVSpec
 from metrics.metric import MeanSquaredError, MeanAbsoluteError, MeanError, DynamicThreshold, join
-from metrics.window_based_classification_metric import WindowedF1Score, WindowedSpecificity, WindowedPPV, \
+from metrics.fixed_window_classification_metric import WindowedF1Score, WindowedSpecificity, WindowedPPV, \
     WindowedPPVSpec
 
 
@@ -60,19 +60,19 @@ def read_ann_file(alg_store, ann_file):
         pred_ann_ref = rdann(pred_ann_file, 'atr')
         gt_ann_ref = rdann(gt_ann_file, 'atr')
         anno = gt_ann_ref.sample
-        adapted_start = (anno[0] + anno[1]) / 2
+        adapted_start = (anno[0] + anno[1]) / 2 if anno[0] != anno[1] else 0
         adapted_end = (anno[1] + anno[2]) / 2 if anno[1] != anno[2] else pred_ann_ref.sample[-1]
         samples = list(filter(lambda s: adapted_start <= s <= adapted_end, pred_ann_ref.sample))
-        if not samples:
+        #if not samples:
             # print("Filtered", anno, pred_ann_ref.sample, len(pred_ann_ref.sample))
-            samples = [0]
+        #    samples = [max(0, anno[1] - gt_ann_ref.fs)]
         return [anno[1]], [gt_ann_ref.symbol[1]], samples, gt_ann_ref.fs, ann_file_type
     else:
         # occurs if algorithm does not output any annotation
         # print("No Output")
-        pred_ann_ref_sample = [0]
         gt_ann_ref = rdann(gt_ann_file, 'atr')
         anno = gt_ann_ref.sample
+        pred_ann_ref_sample = []  # [[max(0, anno[1] - gt_ann_ref.fs)]]
         return [anno[1]], [gt_ann_ref.symbol[1]], pred_ann_ref_sample, gt_ann_ref.fs, ann_file_type
 
 

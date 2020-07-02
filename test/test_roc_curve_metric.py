@@ -151,3 +151,11 @@ class TestRocCurve(unittest.TestCase):
         self.assertEqual(0, fp)
         self.assertEqual(18, tn)
         self.assertEqual(42, fn)
+
+    def test_no_predictions(self):
+        roc = RoCCurve(10)
+        tp, fp, tn, fn = roc.match_classification_annotations([46], ['N'], [], 5)
+        self.assertEqual(0, tp)
+        self.assertEqual(0, fp)
+        self.assertEqual(87, tn)
+        self.assertEqual(6, fn)

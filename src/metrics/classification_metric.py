@@ -150,15 +150,17 @@ class RoCCurve(ClassificationMetric):
         return self.compute()
 
     def match_classification_annotations(self, true_samples, true_symbols, test_samples, tolerance):
-        tp, fp, fn, tn = 0, 0, 0, 0
         recording_len = 2 * true_samples[-1] - true_samples[-2] if len(true_samples) > 1 else 2 * true_samples[-1]
+        if len(test_samples) == 0:
+            fn = len(true_samples) * (tolerance + 1)
+            return 0, 0, fn, recording_len - fn + 1
+        tp, fp, fn, tn = 0, 0, 0, 0
         for true_beat in true_samples:
             left_pred_idx = bisect_right(test_samples, true_beat) - 1
             right_pred_idx = bisect_left(test_samples, true_beat)
 
             left_pred_idx = max(left_pred_idx, 0)
             right_pred_idx = min(right_pred_idx, len(test_samples) - 1)
-
             left_dist_to_beat = abs(test_samples[left_pred_idx] - true_beat)
             right_dist_to_beat = abs(test_samples[right_pred_idx] - true_beat)
             closest_pred_idx = left_pred_idx if left_dist_to_beat < right_dist_to_beat else right_pred_idx

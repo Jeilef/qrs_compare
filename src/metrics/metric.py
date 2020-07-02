@@ -71,6 +71,39 @@ class RegressionMetric(Metric):
                 current_complex = next_complex
                 next_idx += 1 if next_idx < len(true_samples) - 1 else 0
                 next_complex = true_samples[next_idx]
+            if (ts - current_complex)/sampling_frequency < -1:
+                print(true_samples, test_samples, sampling_frequency)
+            self.distance_to_true.append((ts - current_complex)/sampling_frequency)
+
+        return self.compute()
+
+    def compute(self):
+        raise NotImplementedError
+
+
+class RegressionMetricGt(RegressionMetric):
+    def __init__(self):
+        super().__init__()
+        self.distance_to_true = []
+        self.beats = 0
+
+    def join(self, other):
+        self.distance_to_true.extend(other.distance_to_true)
+        self.beats += other.beats
+        return self
+
+    def match_annotations(self, true_samples, true_symbols, test_samples, sampling_frequency=360):
+        self.beats += len(true_samples)
+
+        next_idx = 1
+        current_complex = true_samples[0]
+        next_complex = true_samples[1] if len(true_samples) > 1 else current_complex
+
+        for ts in test_samples:
+            while abs(current_complex - ts) > abs(next_complex - ts):
+                current_complex = next_complex
+                next_idx += 1 if next_idx < len(true_samples) - 1 else 0
+                next_complex = true_samples[next_idx]
 
             self.distance_to_true.append((ts - current_complex)/sampling_frequency)
 
@@ -89,6 +122,15 @@ class MeanSquaredError(RegressionMetric):
         return sum(map(lambda x: x**2, self.distance_to_true))/len(self.distance_to_true)
 
 
+class MeanSquaredErrorGt(RegressionMetricGt):
+    __abbrev__ = 'MSE'
+
+    def compute(self):
+        if len(self.distance_to_true) == 0:
+            return 0
+        return sum(map(lambda x: x**2, self.distance_to_true))/self.beats
+
+
 class MeanAbsoluteError(RegressionMetric):
     __abbrev__ = 'MAE'
 
@@ -98,13 +140,33 @@ class MeanAbsoluteError(RegressionMetric):
         return sum(map(lambda x: abs(x), self.distance_to_true))/len(self.distance_to_true)
 
 
+class MeanAbsoluteErrorGt(RegressionMetricGt):
+    __abbrev__ = 'MSE'
+
+    def compute(self):
+        if len(self.distance_to_true) == 0:
+            return 0
+        return sum(map(lambda x: abs(x), self.distance_to_true))/self.beats
+
+
 class MeanError(RegressionMetric):
     __abbrev__ = 'ME'
 
     def compute(self):
         if len(self.distance_to_true) == 0:
             return 0
+        if sum(self.distance_to_true) / len(self.distance_to_true) > 1:
+            print(len(self.distance_to_true), self.distance_to_true)
         return sum(self.distance_to_true)/len(self.distance_to_true)
+
+
+class MeanErrorGt(RegressionMetricGt):
+    __abbrev__ = 'MSE'
+
+    def compute(self):
+        if len(self.distance_to_true) == 0:
+            return 0
+        return sum(self.distance_to_true)/self.beats
 
 
 class DynamicThreshold(RegressionMetric):

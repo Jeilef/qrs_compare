@@ -43,6 +43,11 @@ class HoppingWindow(ClassificationMetric):
     def match_hopping_annotations(self, true_samples, test_samples, tolerance, step):
         tp, fp, fn, tn = 0, 0, 0, 0
         recording_len = 2 * true_samples[-1] - true_samples[-2] if len(true_samples) > 1 else 2 * true_samples[-1]
+        if len(test_samples) == 0:
+            num_tn = (recording_len // step) - tp - fp - fn + 1
+            tn += max(int(num_tn), 0)
+            fn = sum(map(lambda x: self.num_modulo(x - tolerance, tolerance + 1, step), true_samples))
+            return 0, 0, fn, tn
         for true_beat in true_samples:
             left_pred_idx = bisect_right(test_samples, true_beat) - 1
             right_pred_idx = bisect_left(test_samples, true_beat)
@@ -91,14 +96,14 @@ class HoppingWindow(ClassificationMetric):
             if previous_beat == pred_beat:
                 continue
             next_beat = true_samples[next_beat_idx] if next_beat_idx != len(true_samples) else previous_beat
-            if next_beat - pred_beat <= tolerance or pred_beat - previous_beat <= tolerance:
-                continue
-            start = max(previous_beat, pred_beat - tolerance, 0)
-            end = min(next_beat, pred_beat)
+            #if next_beat - pred_beat <= tolerance or pred_beat - previous_beat <= tolerance:
+            #    continue
+            start = max(previous_beat + 1, pred_beat - tolerance, 0)
+            end = min(next_beat, pred_beat) if next_beat != previous_beat else pred_beat
 
             fp += self.num_modulo(start, end - start + 1, step)
 
-        num_tn = (recording_len // step) - tp - fp - fn + 2
+        num_tn = (recording_len // step) - tp - fp - fn + 1
 
         tn += max(int(num_tn), 0)
         return tp, fp, tn, fn

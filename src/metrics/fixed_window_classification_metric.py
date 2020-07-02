@@ -10,6 +10,8 @@ class FixedWindow(RoCCurve):
         super().__init__(self.parts)
 
     def match_classification_annotations(self, true_samples, true_symbols, test_samples, tolerance):
+        if len(test_samples) == 0:
+            return 0, 0, len(true_samples) + 1, len(true_samples)
         tolerance = tolerance // 2  # necessary because it is to left and to the right
         tp, fp, tn, fn = 0, 0, 0, 0
         last_right_border = -1
@@ -19,6 +21,7 @@ class FixedWindow(RoCCurve):
 
             right_border = max(right_border, 0)
             left_border = min(left_border, len(test_samples) - 1)
+
             left_dist_to_beat = abs(test_samples[left_border] - true_beat)
             right_dist_to_beat = abs(test_samples[right_border] - true_beat)
             if left_dist_to_beat <= tolerance or right_dist_to_beat <= tolerance:
@@ -31,6 +34,7 @@ class FixedWindow(RoCCurve):
                 fp += 1
             elif left_border == last_right_border + 1:
                 tn += 1
+
 
             last_right_border = right_border
         if test_samples[-1] > true_samples[-1] + tolerance:

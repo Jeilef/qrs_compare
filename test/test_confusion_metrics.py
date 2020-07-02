@@ -5,7 +5,7 @@ from algorithm_evaluation import evaluate_algorithm, read_ann_files, evaluate_al
 from algorithm_store import AlgorithmStore
 from metrics.classification_metric import TP, FP, FN, TN
 from metrics.hopping_window_metric import HopTP, HopFP, HopTN, HopFN
-from metrics.window_based_classification_metric import WinTP, WinTN, WinFN, WinFP
+from metrics.fixed_window_classification_metric import WinTP, WinTN, WinFN, WinFP
 
 
 class TestManipData(unittest.TestCase):

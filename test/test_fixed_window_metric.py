@@ -1,6 +1,6 @@
 import unittest
 
-from metrics.window_based_classification_metric import FixedWindow
+from metrics.fixed_window_classification_metric import FixedWindow
 
 
 class TestFixedWindowMetric(unittest.TestCase):
