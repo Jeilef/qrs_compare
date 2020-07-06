@@ -72,18 +72,36 @@ class TestLoadingData(unittest.TestCase):
         plt.show()
 
     def test_compute_representative_beat(self):
-        __num_samples__ = 1000
+        __num_samples__ = 10000
         beat_samples = self.read_data_per_type(__num_samples__)
 
         typed_uniform_beats, uniform_beats = self.equalize_length(beat_samples)
 
         typed_mean_beat = {}
         for label, beats in typed_uniform_beats.items():
+            beats = np.nan_to_num(beats)
             beat = np.mean(beats, axis=0)
+            new_beat = []
+            if label == label.lower():
+                label += "-lower"
+            with open("data/latex_data/average-beat-{}.dat".format(label), "w") as beat_file:
+                beat_data = ""
+                prev_also_zero = False
+                for idx, point in enumerate(beat):
+                    if np.isclose(point, 0, 0.01):
+                        if prev_also_zero or idx == 0:
+                            prev_also_zero = True
+                            continue
+                        prev_also_zero = True
+                    else:
+                        prev_also_zero = False
+                    beat_data += "{} {}\n".format(idx, point)
+                    new_beat.append(point)
+                beat_file.write(beat_data)
             typed_mean_beat[label] = beat
-            plt.plot(beat)
+            plt.plot(new_beat)
             plt.title(label + " mean beat")
-            plt.show()
+            #plt.show()
 
     def equalize_length(self, beat_samples):
         uniform_beats = []
@@ -132,6 +150,7 @@ class TestLoadingData(unittest.TestCase):
 
                                 beat_samples.setdefault(label, [])
                                 splice = splice_beat(ann_idx, beat, 0, ann_sym, sample)
+
                                 t = np.arange(splice[0].shape[0]).astype('float64')
                                 new_length = int(splice[0].shape[0] * self.sample_freq / meta['fs'])
                                 sample, sample_t = signal.resample(splice[0], num=new_length, t=t)

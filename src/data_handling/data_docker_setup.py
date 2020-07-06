@@ -4,6 +4,7 @@ import multiprocessing as mp
 
 import numpy as np
 import wfdb
+from scipy import signal
 
 from data_handling.splice import splice_per_beat_type
 
@@ -13,6 +14,8 @@ class ECGData:
     __base_data_path__ = "/mnt/dsets/physionet"
     __annotation_path__ = os.path.abspath("comparison_data/annotations")
     __signal_path__ = os.path.abspath("comparison_data/signal")
+    __target_frequency__ = 500  # Hz
+    __splice_size__ = 10
 
     def __init__(self, data_folder_path, ann_data_path):
 
@@ -33,26 +36,56 @@ class ECGData:
                     records = list(f.readlines())
                     for r in records:
                         self.process_record(dirpath, r)
-                    #with mp.Pool(processes=20) as pool:
-                    #    pool.starmap(self.process_record, list(zip([dirpath]*len(records), records)))
+
                 for k in self.test_samples:
                     print(k, len(self.test_samples[k]))
 
+    def read_ann_file(self, ann_file_name):
+        if os.path.exists(ann_file_name + '.atr') and os.path.isfile(ann_file_name + '.atr'):
+            return wfdb.rdann(ann_file_name, extension='atr')
+
+        elif os.path.exists(ann_file_name + '.qrs') and os.path.isfile(ann_file_name + '.qrs'):
+            return wfdb.rdann(ann_file_name, extension='qrs')
+
+        elif os.path.exists(ann_file_name + '.ecg') and os.path.isfile(ann_file_name + '.ecg'):
+            return wfdb.rdann(ann_file_name, extension='ecg')
+
+        elif os.path.exists(ann_file_name + '.ari') and os.path.isfile(ann_file_name + '.ari'):
+            return wfdb.rdann(ann_file_name, extension='ari')
+
     def process_record(self, dirpath, r):
         ann_file_name = os.path.join(dirpath, r.rstrip('\n'))
-        ann_file_exists = os.path.exists(ann_file_name + '.atr') and os.path.isfile(
-            ann_file_name + '.atr')
-        rec_file_name = os.path.join(dirpath, r.rstrip('\n'))
-        rec_file_exists = os.path.exists(ann_file_name + '.dat') and os.path.isfile(
-            ann_file_name + '.dat')
-        if ann_file_exists and rec_file_exists:
-            ann = wfdb.rdann(ann_file_name, extension='atr')
+        ann = self.read_ann_file(ann_file_name)
 
+        rec_file_name = os.path.join(dirpath, r.rstrip('\n'))
+        rec_file_exists = os.path.exists(ann_file_name + '.dat') and os.path.isfile(ann_file_name + '.dat')
+
+        if ann and rec_file_exists:
             sample, meta = wfdb.rdsamp(rec_file_name, channels=[0])
             meta['file_name'] = r.rstrip('\n')
+            sample, ann = self.resample_record_and_annotation(sample, ann, meta, self.__target_frequency__)
 
-            spliced_data = splice_per_beat_type(sample, ann, 10)
+            spliced_data = splice_per_beat_type(sample, ann, self.__splice_size__)
             self.update_data_with_splices(spliced_data, meta)
+
+    def resample_record_and_annotation(self, record, annotation, meta, target_freqency):
+        sample = self.resample_record(meta, record, target_freqency)
+        res_anno = self.resample_annotation(annotation, meta, target_freqency)
+        return sample, res_anno
+
+    def resample_annotation(self, annotation, meta, target_freqency):
+        samples = []
+        for s in annotation.sample:
+            new_s = int(s * target_freqency / meta['fs'])
+            samples.append(new_s)
+        annotation.sample = samples
+        return annotation
+
+    def resample_record(self, meta, record, target_freqency):
+        t = np.arange(record.shape[0]).astype('float64')
+        new_length = int(record.shape[0] * target_freqency / meta['fs'])
+        sample, sample_t = signal.resample(record, num=new_length, t=t)
+        return sample
 
     def update_data_with_splices(self, spliced_data, meta):
         for symbol, splices in spliced_data.items():
