@@ -1,15 +1,15 @@
 import concurrent.futures as cf
-import multiprocessing as mp
 import json
+import multiprocessing as mp
 import os
+import re
 from functools import reduce
 
 from wfdb import rdann
 
-from metrics.classification_metric import PositivePredictiveValue, Sensitivity, F1, RoCCurve, PPVSpec
+from metrics.classification_metric import PositivePredictiveValue, Sensitivity, F1, PPVSpec
+from metrics.fixed_window_classification_metric import WindowedF1Score, WindowedPPVSpec
 from metrics.metric import MeanSquaredError, MeanAbsoluteError, MeanError, DynamicThreshold, join
-from metrics.fixed_window_classification_metric import WindowedF1Score, WindowedSpecificity, WindowedPPV, \
-    WindowedPPVSpec
 
 
 def read_evaluated_algorithms():
@@ -44,8 +44,10 @@ def evaluate_algorithm(alg_store):
     convert_metrics_to_json(alg_store, list(computed_metrics))
 
 
-def read_ann_files(alg_store):
+def read_ann_files(alg_store, file_name_regex=".*"):
+    p = re.compile(file_name_regex)
     file_names = os.listdir(alg_store.groundtruth_dir())
+    file_names = [f for f in file_names if p.match(f)]
     print(len(file_names), "file names")
     with cf.ProcessPoolExecutor(max_workers=10) as pool:
         prepared_ann_tuples = list(pool.map(read_ann_file, [alg_store] * len(file_names), file_names))
@@ -59,14 +61,13 @@ def read_ann_file(alg_store, ann_file):
     if os.path.exists(pred_ann_file + "." + ann_file.rsplit('.')[1]):
         pred_ann_ref = rdann(pred_ann_file, 'atr')
         gt_ann_ref = rdann(gt_ann_file, 'atr')
+        pred_beats = pred_ann_ref.sample
         anno = gt_ann_ref.sample
-        adapted_start = (anno[0] + anno[1]) / 2 if anno[0] != anno[1] else 0
-        adapted_end = (anno[1] + anno[2]) / 2 if anno[1] != anno[2] else pred_ann_ref.sample[-1]
-        samples = list(filter(lambda s: adapted_start <= s <= adapted_end, pred_ann_ref.sample))
-        #if not samples:
-            # print("Filtered", anno, pred_ann_ref.sample, len(pred_ann_ref.sample))
-        #    samples = [max(0, anno[1] - gt_ann_ref.fs)]
-        return [anno[1]], [gt_ann_ref.symbol[1]], samples, gt_ann_ref.fs, ann_file_type
+        sampling_frequency = gt_ann_ref.fs
+        gt_beat_type = gt_ann_ref.symbol[1]
+
+        return create_evaluation_format(ann_file_type, anno, gt_beat_type, pred_beats,
+                                        sampling_frequency)
     else:
         # occurs if algorithm does not output any annotation
         # print("No Output")
@@ -74,6 +75,13 @@ def read_ann_file(alg_store, ann_file):
         anno = gt_ann_ref.sample
         pred_ann_ref_sample = []  # [[max(0, anno[1] - gt_ann_ref.fs)]]
         return [anno[1]], [gt_ann_ref.symbol[1]], pred_ann_ref_sample, gt_ann_ref.fs, ann_file_type
+
+
+def create_evaluation_format(ann_file_type, anno, gt_beat_type, pred_beats, sampling_frequency):
+    adapted_start = (anno[0] + anno[1]) / 2 if anno[0] != anno[1] else 0
+    adapted_end = (anno[1] + anno[2]) / 2 if anno[1] != anno[2] else pred_beats[-1]
+    samples = list(filter(lambda s: adapted_start <= s <= adapted_end, pred_beats))
+    return [anno[1]], [gt_beat_type], samples, sampling_frequency, ann_file_type
 
 
 def evaluate_algorithm_with_metric(metric, loaded_data):
@@ -92,7 +100,6 @@ def evaluate_algorithm_with_metric(metric, loaded_data):
     for symbol, metrics in collected_metrics.items():
         red_metric = reduce(join, metrics)
         typed_metrics[symbol] = red_metric
-
     return typed_metrics
 
 

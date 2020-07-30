@@ -7,23 +7,23 @@ import wfdb
 from util.util import BEAT_CODE_DESCRIPTIONS
 
 
-def splice_per_beat_type(samples, annotations, splice_size=10):
+def splice_per_beat_type(samples, annotations, splice_size=10, beat_position=2/3):
     splices = {}
     for ann_idx, (beat, label) in enumerate(zip(annotations.sample, annotations.symbol)):
         if label not in BEAT_CODE_DESCRIPTIONS:
             continue
 
-        splice = splice_beat(ann_idx, beat, splice_size, annotations, samples)
+        splice = splice_beat(ann_idx, beat, splice_size, annotations, samples, beat_position)
         splices.setdefault(label, []).append(splice)
     return splices
 
 
-def splice_beat(ann_idx, beat, splice_size, annotation, samples):
+def splice_beat(ann_idx, beat, splice_size, annotation, samples, beat_position=2/3):
 
-    start_idx = max(ann_idx - (2 * splice_size // 3), 0)
+    start_idx = max(ann_idx - (int(splice_size * beat_position)), 0)
     end_idx = min(start_idx + splice_size, len(annotation.sample) - 1)
 
-    # split data between beats or else the algorithm gets confused - even with it gets confused
+    # split data between beats or else the algorithm gets confused - even with it gets confused a little
     if start_idx > 0:
         start_sample = (annotation.sample[start_idx] + annotation.sample[start_idx - 1]) // 2
     else:
@@ -33,7 +33,7 @@ def splice_beat(ann_idx, beat, splice_size, annotation, samples):
     else:
         end_sample = len(samples)
 
-    beat_annotations = [annotation.sample[max(ann_idx - 1, 0)] - start_sample,
+    beat_annotations = [max(annotation.sample[max(ann_idx - 1, 0)] - start_sample, 0),
                         annotation.sample[ann_idx] - start_sample,
                         annotation.sample[min(ann_idx + 1, len(annotation.sample) - 1)] - start_sample]
 

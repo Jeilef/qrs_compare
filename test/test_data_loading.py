@@ -1,7 +1,7 @@
 import os
 import unittest
 from os import listdir
-
+import matplotlib.pyplot as plt
 import wfdb
 from wfdb import processing
 from ecgdetectors import Detectors
@@ -75,10 +75,11 @@ class TestLoadingData(unittest.TestCase):
         self.assertLess(10000, sum(map(lambda x: len(x.sample), annotations)))
         self.assertLess(100000, sum(map(lambda x: len(x.sample), annotations)))
 
-    def test_amount_of_certain_beats_in_mit_ar(self):
+    def test_amount_of_certain_beats(self):
         num_beats = {}
         for dirpath, subdir, filenames in os.walk("/mnt/dsets/physionet"):
             if "RECORDS" in filenames:
+                print(dirpath, subdir)
                 with open(os.path.join(dirpath, "RECORDS"), 'r') as f:
                     records = list(f.readlines())
                     for r in records:
@@ -100,6 +101,9 @@ class TestLoadingData(unittest.TestCase):
                             num_beats.setdefault(label, 0)
                             num_beats[label] += 1
 
+                for k in num_beats:
+                    print(k, num_beats[k])
+
         print(num_beats)
         self.assertLess(10000, num_beats['N'])
 
@@ -118,6 +122,23 @@ class TestLoadingData(unittest.TestCase):
 
     def test_save_base(self):
         self.save_beat_type_occurrences(None)
+
+    def test_save_complex_data(self):
+        meta = {}
+        with open("data/log_files/meta_log_V_0-0_1_1464.log", "r") as meta_file:
+            for line in meta_file.readlines():
+                spli = line.split(",")
+                meta[spli[0]] = spli[1].rstrip("\n")
+        with open("data/log_files/save_file_V_0-0_1_1464.log", "r") as save_file:
+            file_content = save_file.read()
+            sample = file_content.split(",")
+            sample = list(map(float, sample))
+        reshaped_sig = np.array(sample).reshape((-1, 1))
+        max_min = max(np.max(reshaped_sig), abs(np.min(reshaped_sig)))
+        reshaped_sig = reshaped_sig / max_min
+        wfdb.wrsamp("V_0-0_1_1464", fs=500, units=["mV"], p_signal=reshaped_sig,
+                    comments=[], base_date=None, base_time=None, fmt=["32"], sig_name=['ECG1'],
+                    write_dir="data/failed_writes")
 
 
 if __name__ == '__main__':

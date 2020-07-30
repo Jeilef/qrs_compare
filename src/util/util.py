@@ -1,4 +1,5 @@
 import bisect
+from itertools import chain, combinations
 
 BEAT_CODE_DESCRIPTIONS = {
     "N": "Normal beat",
@@ -42,3 +43,9 @@ def get_closest(a, x):
 
 def mapper_beat_code_to_desciption(code):
     return BEAT_CODE_DESCRIPTIONS[code]
+
+
+def powerset(iterable):
+    "powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))

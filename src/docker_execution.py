@@ -1,5 +1,6 @@
 import datetime
 import os
+import re
 import shutil
 import subprocess
 
@@ -55,7 +56,10 @@ def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path, predi
     print("Docker deamon start exited with: ", rt)
     docker_names = []
     docker_container = []
+    p = re.compile('.*[a-zA-Z]_[0-9].[0-9]_[0-9]+.*')
     for input_data_folder in os.listdir(input_data_path):
+        if p.match(input_data_folder):
+            continue
         extended_name = str(docker_name) + input_data_folder
         docker_names.append(extended_name)
         start_docker = ["docker", "run", "--name={}".format(extended_name), "--network", "host", "--rm",

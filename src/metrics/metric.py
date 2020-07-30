@@ -156,7 +156,7 @@ class MeanError(RegressionMetric):
         if len(self.distance_to_true) == 0:
             return 0
         if sum(self.distance_to_true) / len(self.distance_to_true) > 1:
-            print(len(self.distance_to_true), self.distance_to_true)
+            print("ME Possible Error:", len(self.distance_to_true), self.distance_to_true)
         return sum(self.distance_to_true)/len(self.distance_to_true)
 
 
