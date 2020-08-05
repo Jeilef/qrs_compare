@@ -21,6 +21,7 @@ class ECGData:
     __splice_size_start__ = 3
     __splice_size_end__ = 11
     __splice_size_step_size__ = 2
+    __stepping_beat_position__ = False
 
     def __init__(self, data_folder_path=__signal_path__, ann_data_path=__annotation_path__,
                  min_noise=0, max_noise=2, num_noise=9):
@@ -74,12 +75,12 @@ class ECGData:
                 for k in possible_keys:
                     if k[0] == m:
                         summ_ad = summ + k[1:]
-                        self.test_samples.setdefault(summ_ad, []).extend(self.test_samples[k])
-                        self.test_annotations.setdefault(summ_ad, []).extend(self.test_annotations[k])
-                        self.test_fields.setdefault(summ_ad, []).extend(self.test_fields[k])
-                        useless_keys.append(k)
+                        useless_keys.append((summ_ad, k))
 
-        for k in useless_keys:
+        for summ_ad, k in useless_keys:
+            self.test_samples.setdefault(summ_ad, []).extend(self.test_samples[k])
+            self.test_annotations.setdefault(summ_ad, []).extend(self.test_annotations[k])
+            self.test_fields.setdefault(summ_ad, []).extend(self.test_fields[k])
             del self.test_samples[k]
             del self.test_annotations[k]
             del self.test_fields[k]
@@ -163,20 +164,28 @@ class ECGData:
                 sample, ann = self.resample_record_and_annotation(sample, ann, meta, self.__target_frequency__)
 
                 for splice_size in range(self.__splice_size_start__, self.__splice_size_end__, self.__splice_size_step_size__):
-                    spliced_data = splice_per_beat_type(sample, ann, splice_size)
-                    self.update_data_with_splices(spliced_data, meta, splice_size)
+                    if self.__stepping_beat_position__:
+                        for i in np.linspace(0.2, 1, 5):
+                            spliced_data = splice_per_beat_type(sample, ann, splice_size, i)
+                            self.update_data_with_splices(spliced_data, meta, splice_size, i)
+                    else:
+                        spliced_data = splice_per_beat_type(sample, ann, splice_size)
+                        self.update_data_with_splices(spliced_data, meta, splice_size)
             except ValueError as v:
                 print("Could not parse", rec_file_name, "because", str(v))
-            self.summarize_data_of_underrepresented_types()
-            for k in self.test_samples:
-                if len(self.test_samples[k]) > 0:
-                    self.save_beat_type(k)
-            del self.test_samples
-            del self.test_fields
-            del self.test_annotations
-            self.test_samples = {}
-            self.test_fields = {}
-            self.test_annotations = {}
+            self.save_and_reset_created_beats()
+
+    def save_and_reset_created_beats(self):
+        self.summarize_data_of_underrepresented_types()
+        for k in self.test_samples:
+            if len(self.test_samples[k]) > 0:
+                self.save_beat_type(k)
+        del self.test_samples
+        del self.test_fields
+        del self.test_annotations
+        self.test_samples = {}
+        self.test_fields = {}
+        self.test_annotations = {}
 
     def resample_record_and_annotation(self, record, annotation, meta, target_freqency):
         sample = self.resample_record(meta, record, target_freqency)
@@ -197,7 +206,7 @@ class ECGData:
         sample, sample_t = signal.resample(record, num=new_length, t=t)
         return sample
 
-    def update_data_with_splices(self, spliced_data, meta, splice_size):
+    def update_data_with_splices(self, spliced_data, meta, splice_size, beat_pos=0.3):
         for symbol, splices in spliced_data.items():
             if symbol not in self.collected_data or splice_size not in self.collected_data[symbol] or \
                     self.collected_data[symbol][splice_size] < self.__records_per_beat_type__:
@@ -206,11 +215,11 @@ class ECGData:
                                                                                       self.max_noise, self.num_noise)
                     self.collected_data.setdefault(symbol, {}).setdefault(splice_size, 0)
                     self.collected_data[symbol][splice_size] += 1
-                    self.process_adapted_splices(adapted_splices, adapted_symbols, meta, rel_ann, splice_size)
+                    self.process_adapted_splices(adapted_splices, adapted_symbols, meta, rel_ann, splice_size, beat_pos)
 
-    def process_adapted_splices(self, adapted_splices, adapted_symbols, meta, rel_ann, splice_size):
+    def process_adapted_splices(self, adapted_splices, adapted_symbols, meta, rel_ann, splice_size, beat_pos):
         for sym, spli in zip(adapted_symbols, adapted_splices):
-            sym += "_" + str(splice_size)
+            sym += "_" + str(beat_pos) + "_" + str(splice_size)
             self.test_samples.setdefault(sym, []).append(spli)
             self.test_annotations.setdefault(sym, []).append(rel_ann)
             self.test_fields.setdefault(sym, []).append(meta)

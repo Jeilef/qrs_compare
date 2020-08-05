@@ -31,12 +31,16 @@ class MockAlgStore(AlgorithmStore):
 
 
 def create_all_data():
-    base_path = "../comparison_data"
+    base_path = "../comparison_data_splice_pos"
     ecg = ECGData(base_path + "/signal",
-                       base_path + "/annotations", 0, 2, 5)
+                       base_path + "/annotations", min_noise=0, max_noise=0, num_noise=1)
 
     ecg.read_noise_data()
-    ecg.__records_per_beat_type__ = 1000
+    ecg.__records_per_beat_type__ = 10000
+    ecg.__splice_size_start__ = 9
+    ecg.__splice_size_end__ = 10
+    ecg.__splice_size_step_size__ = 1
+    ecg.__stepping_beat_position__ = True
     ecg.setup_evaluation_data()
 
 
@@ -76,7 +80,8 @@ def generate_predictions_with_dirs(base_save_path, comp_data_path="../comparison
                             print("Done", alg_name)
 
 
-def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"):
+def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/",
+                                      metric_path="data/latex_data/direct-metrics"):
     p = re.compile('.*N_[0-9].[0-9]+[a-zA-Z_]*_[0-9]+.*')
     metrics = [MeanError, AdTP, AdFP, AdTN, AdFN]
     typed_metrics = {}
@@ -97,7 +102,6 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
                 rec_file_name = os.path.join(dirpath, r.rstrip('\n'))
                 rec_file_exists = os.path.exists(rec_file_name + '.dat') and os.path.isfile(
                     rec_file_name + '.dat')
-                print("Exist check", ann_file_name, ann_file_exists, rec_file_name, rec_file_exists)
                 if ann_file_exists and rec_file_exists:
                     try:
                         annotation = wfdb.rdann(ann_file_name, 'atr')
@@ -111,23 +115,25 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
                     # 150 is a restriction for some qrs detectors
                     if len(sample) > 150:
                         for alg_name, alg_func in algs_with_name().items():
-                            print(alg_name)
+                            typed_metrics[current_folder].setdefault(alg_name, {})
                             r_peaks = alg_func(meta, rec_name, "", sample, save=False)
-                            eval_tuple = create_evaluation_format(annotation.symbol[1], annotation.sample,
-                                                                  r[0], r_peaks, meta['fs'])
+                            if len(r_peaks) == 0:
+                                eval_tuple = [annotation.sample[1]], [annotation.symbol[1]], [], meta['fs'], r[0]
+                            else:
+                                eval_tuple = create_evaluation_format(annotation.symbol[1], annotation.sample,
+                                                                    r[0], r_peaks, meta['fs'])
                             for m_idx, m in enumerate(metrics):
                                 beat_type, metric = match_for_metric_on_data_part(eval_tuple, m)
-                                typed_metrics[current_folder].setdefault(m_idx, []).append(metric)
-                            print("Done", alg_name)
+                                typed_metrics[current_folder][alg_name].setdefault(m_idx, []).append(metric)
 
     print("Saving Metrics per folder")
-    metric_path = "data/latex_data/direct-metrics"
     os.makedirs(metric_path, exist_ok=True)
     for folder in typed_metrics:
-        for metric_idx in typed_metrics[folder]:
-            combined_metric = reduce(join, typed_metrics[folder][metric_idx])
-            with open(metric_path + "/{}-{}.dat".format(folder, combined_metric.__abbrev__), "w") as splice_file:
-                splice_file.write(str(combined_metric.compute()))
+        for alg_name in typed_metrics[folder]:
+            for metric_idx in typed_metrics[folder][alg_name]:
+                combined_metric = reduce(join, typed_metrics[folder][alg_name][metric_idx])
+                with open(metric_path + "/{}--{}--{}.dat".format(folder, alg_name, combined_metric.__abbrev__), "w") as splice_file:
+                    splice_file.write(str(combined_metric.compute()))
 
 
 def generate_metric_values(prediction_dir, splice_save_dir):
@@ -170,4 +176,5 @@ if __name__ == "__main__":
     # generate_predictions_with_dirs("data/algorithm_prediction/", "../comparison_data/")
     # N_0-5_em_ma_3_2177, S_0-0_3_264
 
-    generate_predictions_with_metrics("../comparison_data/")
+    generate_predictions_with_metrics("../comparison_data_splice_pos/", "data/latex_data/beat-pos-direct-metrics")
+    # create_all_data()
