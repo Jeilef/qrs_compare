@@ -1,8 +1,7 @@
 import json
 import os
-from flask import Flask, render_template, flash, request, redirect, url_for, Blueprint, jsonify
-from werkzeug.utils import secure_filename
-from multiprocessing import Pool
+
+from flask import Flask, render_template, flash, request, redirect
 
 from algorithm_evaluation import evaluate_algorithm, read_evaluated_algorithms, read_single_algorithm_results
 from algorithm_store import AlgorithmStore

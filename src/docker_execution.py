@@ -56,23 +56,24 @@ def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path, predi
     print("Docker deamon start exited with: ", rt)
     docker_names = []
     docker_container = []
-    p = re.compile('.*[a-zA-Z]_[0-9].[0-9]_[0-9]+.*')
+    pattern = re.compile('.*[a-zA-Z]_[0-9].[0-9]_[0-9]+.*')
     for input_data_folder in os.listdir(input_data_path):
-        if p.match(input_data_folder):
+        if pattern.match(input_data_folder):
             continue
         extended_name = str(docker_name) + input_data_folder
         docker_names.append(extended_name)
+        # has to not exceed the memory - especially important for the eval data
         start_docker = ["docker", "run", "--name={}".format(extended_name), "--network", "host", "--rm",
                         "-v", "{}:/alg".format(alg_dir),
                         "-v", "{}:/data".format(os.path.join(input_data_path, input_data_folder)),
                         "-v", "{}:/pred".format(os.path.join(prediction_path)),
                         "ubuntu", "bash", "/alg/setup.sh", ]
         print("preparation complete. starting docker with: ", " ".join(start_docker))
-        p = subprocess.Popen(start_docker)
-        docker_container.append(p)
+        proc = subprocess.Popen(start_docker)
+        docker_container.append(proc)
 
-    for p in docker_container:
-        p.wait()
+    for proc in docker_container:
+        proc.wait()
 
     return docker_names
 

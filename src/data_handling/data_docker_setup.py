@@ -59,9 +59,7 @@ class ECGData:
                     for r in records:
                         self.process_record(dirpath, r)
 
-                for k in self.collected_data:
-                    for k2 in self.collected_data[k]:
-                        print(k, k2, self.collected_data[k][k2])
+                print(self.collected_data)
         self.summarize_data_of_underrepresented_types()
 
     def summarize_data_of_underrepresented_types(self):
@@ -322,6 +320,7 @@ class ECGData:
             except ValueError as v:
                 print("Failed to write", record_name, "because", str(v))
                 self.clean_up_wrong_writes(symbol, record_name)
+                print(symbol[0], int(symbol.split("_")[-1]))
                 self.collected_data[symbol[0]][int(symbol.split("_")[-1])] -= 1
                 self.failed_writes.setdefault(symbol, 0)
                 self.failed_writes[symbol] += 1
