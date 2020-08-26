@@ -45,7 +45,7 @@ def create_all_data():
     print(ecg.failed_writes)
 
 
-def generate_predictions_with_dirs(base_save_path, comp_data_path="../comparison_data_noise/"):
+def generate_predictions(base_save_path, comp_data_path="../comparison_data_noise/"):
     p = re.compile('.*N_[0-9].[0-9]+[a-zA-Z_]*_[0-9]+.*')
     for dirpath, subdir, filenames in os.walk(comp_data_path + "signal"):
         print("Scanning: ", dirpath)
@@ -177,7 +177,7 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
 
 
 if __name__ == "__main__":
-    # generate_predictions_with_dirs("data/algorithm_prediction/", "../comparison_data/")
+    # generate_predictions("data/algorithm_prediction/", "../comparison_data/")
     # N_0-5_em_ma_3_2177, S_0-0_3_264
 
     generate_predictions_with_metrics("../comparison_data_large_slices/", "data/latex_data/large-slices")
