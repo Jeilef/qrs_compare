@@ -123,7 +123,7 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
                                       metric_path="data/latex_data/direct-metrics"):
     p = re.compile('.*N_[0-9].[0-9]+[a-zA-Z_]*_[0-9]+.*')
     metrics = [MeanError, AdTP, AdFP, AdTN, AdFN]
-    typed_metrics = {}
+    os.makedirs(metric_path, exist_ok=True)
 
     for dirpath, subdir, filenames in os.walk(comp_data_path + "signal"):
         print("Scanning: ", dirpath)
@@ -132,7 +132,7 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
             with open(os.path.join(dirpath, "RECORDS"), 'r') as f:
                 records = list(f.readlines())
             current_folder = dirpath.split(os.sep)[-1]
-            typed_metrics[current_folder] = {}
+            typed_metrics = {}
             for r in records:
                 print("Processing", r)
                 ann_file_name = os.path.join(comp_data_path + "annotations", r.rstrip('\n'))
@@ -141,9 +141,10 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
                 rec_file_name = os.path.join(dirpath, r.rstrip('\n'))
                 rec_file_exists = os.path.exists(rec_file_name + '.dat') and os.path.isfile(
                     rec_file_name + '.dat')
+
                 if ann_file_exists and rec_file_exists:
                     try:
-                        annotation = wfdb.rdann(ann_file_name, 'atr')
+                        annotation = func_timeout(5, wfdb.rdann, args=(ann_file_name, 'atr'))
                         sample, meta = func_timeout(5, wfdb.rdsamp, args=(rec_file_name,), kwargs={"channels": [0]})
                     except:
                         print("Failed reading sample", r)
@@ -153,8 +154,14 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
 
                     # 150 is a restriction for some qrs detectors
                     if len(sample) > 150:
+                        print("Generating Metrics")
                         for alg_name, alg_func in algs_with_name().items():
-                            typed_metrics[current_folder].setdefault(alg_name, {})
+                            metric_file_name = metric_path + "/{}--{}--{}.dat".format(current_folder, alg_name,
+                                                                                      metrics[-1].__abbrev__)
+                            if os.path.isfile(metric_file_name):
+                                print("exists")
+                                continue
+                            typed_metrics.setdefault(alg_name, {})
                             r_peaks = alg_func(meta, rec_name, "", sample, save=False)
                             if len(r_peaks) == 0:
                                 eval_tuple = [annotation.sample[1]], [annotation.symbol[1]], [], meta['fs'], r[0]
@@ -163,22 +170,21 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
                                                                       r[0], r_peaks, meta['fs'])
                             for m_idx, m in enumerate(metrics):
                                 beat_type, metric = match_for_metric_on_data_part(eval_tuple, m)
-                                typed_metrics[current_folder][alg_name].setdefault(m_idx, []).append(metric)
+                                typed_metrics[alg_name].setdefault(m_idx, []).append(metric)
 
-    print("Saving Metrics per folder")
-    os.makedirs(metric_path, exist_ok=True)
-    for folder in typed_metrics:
-        for alg_name in typed_metrics[folder]:
-            for metric_idx in typed_metrics[folder][alg_name]:
-                combined_metric = reduce(join, typed_metrics[folder][alg_name][metric_idx])
-                with open(metric_path + "/{}--{}--{}.dat".format(folder, alg_name, combined_metric.__abbrev__),
-                          "w") as splice_file:
-                    splice_file.write(str(combined_metric.compute()))
+            print("saving")
+            for alg_name in typed_metrics:
+                for metric_idx in typed_metrics[alg_name]:
+                    combined_metric = reduce(join, typed_metrics[alg_name][metric_idx])
+                    metric_file_name = metric_path + "/{}--{}--{}.dat".format(current_folder, alg_name,
+                                                                       combined_metric.__abbrev__)
+                    with open(metric_file_name, "w") as splice_file:
+                        splice_file.write(str(combined_metric.compute()))
 
 
 if __name__ == "__main__":
     # generate_predictions("data/algorithm_prediction/", "../comparison_data/")
     # N_0-5_em_ma_3_2177, S_0-0_3_264
 
-    generate_predictions_with_metrics("../comparison_data_large_slices/", "data/latex_data/large-slices")
+    generate_predictions_with_metrics("../comparison_data_beat_types/", "data/latex_data/equal-beat-types")
     #create_all_data()
