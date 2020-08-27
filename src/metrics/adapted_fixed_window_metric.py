@@ -86,9 +86,9 @@ class AdPositivePredictiveValue(AdaptedFixedWindow):
         return self.compute()
 
     def compute(self):
-        if len(self.tp_by_tol[-1]) == 0 == len(self.fp_by_tol[-1]):
+        if self.tp_by_tol[-1] == 0 == self.fp_by_tol[-1]:
             return 0
-        return len(self.tp_by_tol[-1]) / (len(self.fp_by_tol[-1]) + len(self.tp_by_tol[-1]))
+        return self.tp_by_tol[-1] / (self.fp_by_tol[-1] + self.tp_by_tol[-1])
 
 
 class AdSensitivity(AdaptedFixedWindow):
@@ -99,9 +99,9 @@ class AdSensitivity(AdaptedFixedWindow):
         return self.compute()
 
     def compute(self):
-        if len(self.tp_by_tol[-1]) == 0 == len(self.fn_by_tol[-1]):
+        if self.tp_by_tol[-1] == 0 == self.fn_by_tol[-1]:
             return 0
-        return len(self.tp_by_tol[-1]) / (len(self.fn_by_tol[-1]) + len(self.tp_by_tol[-1]))
+        return self.tp_by_tol[-1] / (self.fn_by_tol[-1] + self.tp_by_tol[-1])
 
 
 class AdSpecificity(AdaptedFixedWindow):
@@ -112,6 +112,6 @@ class AdSpecificity(AdaptedFixedWindow):
         return self.compute()
 
     def compute(self):
-        if len(self.tn_by_tol[-1]) == 0 == len(self.fp_by_tol[-1]):
+        if self.tn_by_tol[-1] == 0 == self.fp_by_tol[-1]:
             return 0
-        return len(self.tn_by_tol[-1]) / (len(self.tn_by_tol[-1]) + len(self.fp_by_tol[-1]))
+        return self.tn_by_tol[-1] / (self.tn_by_tol[-1] + self.fp_by_tol[-1])

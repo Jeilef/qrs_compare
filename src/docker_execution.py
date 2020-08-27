@@ -12,8 +12,8 @@ def setup_docker(alg_store):
     A zip file is expected to contain a setup.sh which prepares the VM for code execution. One can assume that
     :return:
     """
-    # removed for testing fully deployable scripts
-    # prepare_setup_for_execution_in_docker(alg_store.setup_file_path())
+    # remove for testing fully deployable scripts
+    prepare_setup_for_execution_in_docker(alg_store.setup_file_path())
 
     docker_name = datetime.datetime.now().microsecond
 

@@ -17,8 +17,8 @@ BEAT_CODE_DESCRIPTIONS = {
     "j": "Nodal (junctional) escape beat",
     "n": "Supraventricular escape beat (atrial or nodal)",
     "E": "Ventricular escape beat",
-    "f": "Fusion of paced and normal beat",
-    "Q": "Unclassifiable beat"
+    "f": "Fusion of paced and normal beat"
+ #   "Q": "Unclassifiable beat"
 }
 
 
