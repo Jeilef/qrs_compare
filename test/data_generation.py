@@ -30,19 +30,19 @@ class MockAlgStore(AlgorithmStore):
         return self.pred_alg_dir
 
 
-def create_all_data():
-    base_path = "../comparison_data_large_slices"
+def create_all_data(base_path="../comparison_data_large_slices"):
+
     ecg = ECGData(base_path + "/signal",
                   base_path + "/annotations", min_noise=0, max_noise=2, num_noise=5)
 
     ecg.read_noise_data()
-    ecg.__records_per_beat_type__ = 10000
-    ecg.__splice_size_start__ = 10
-    ecg.__splice_size_end__ = 21
-    ecg.__splice_size_step_size__ = 2
+    ecg.__records_per_beat_type__ = 5000
+    ecg.__splice_size_start__ = 5
+    ecg.__splice_size_end__ = 26
+    ecg.__splice_size_step_size__ = 5
     ecg.__stepping_beat_position__ = False
     ecg.setup_evaluation_data()
-    print(ecg.failed_writes)
+    print("failed writes: ", ecg.failed_writes)
 
 
 def generate_predictions(base_save_path, comp_data_path="../comparison_data_noise/"):
@@ -156,6 +156,7 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
                     if len(sample) > 150:
                         print("Generating Metrics")
                         for alg_name, alg_func in algs_with_name().items():
+                            typed_metrics.setdefault(alg_name, {})
                             metric_file_name = metric_path + "/{}--{}--{}.dat".format(current_folder, alg_name,
                                                                                       metrics[-1].__abbrev__)
                             if os.path.isfile(metric_file_name):
@@ -172,19 +173,24 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
                                 beat_type, metric = match_for_metric_on_data_part(eval_tuple, m)
                                 typed_metrics[alg_name].setdefault(m_idx, []).append(metric)
 
-            print("saving")
+            print("Saving Metrics per folder", current_folder)
             for alg_name in typed_metrics:
                 for metric_idx in typed_metrics[alg_name]:
                     combined_metric = reduce(join, typed_metrics[alg_name][metric_idx])
-                    metric_file_name = metric_path + "/{}--{}--{}.dat".format(current_folder, alg_name,
-                                                                       combined_metric.__abbrev__)
-                    with open(metric_file_name, "w") as splice_file:
+                    with open(metric_path + "/{}--{}--{}.dat".format(current_folder, alg_name, combined_metric.__abbrev__),
+                              "w") as splice_file:
                         splice_file.write(str(combined_metric.compute()))
+
+
+def long_sliced_data():
+    generate_predictions_with_metrics("../comparison_data_large_slices/", "data/latex_data/large-slices")
 
 
 if __name__ == "__main__":
     # generate_predictions("data/algorithm_prediction/", "../comparison_data/")
     # N_0-5_em_ma_3_2177, S_0-0_3_264
+    base_path = "../comparison_data_beat_types/"
+    create_all_data(base_path)
+    generate_predictions_with_metrics(base_path, "data/latex_data/equal-beat-types")
 
-    generate_predictions_with_metrics("../comparison_data_beat_types/", "data/latex_data/equal-beat-types")
     #create_all_data()
