@@ -12,16 +12,14 @@ def setup_docker(alg_store):
     A zip file is expected to contain a setup.sh which prepares the VM for code execution. One can assume that
     :return:
     """
-
-    prepare_setup_for_execution_in_docker(alg_store.setup_file_path())
+    # removed for testing fully deployable scripts
+    # prepare_setup_for_execution_in_docker(alg_store.setup_file_path())
 
     docker_name = datetime.datetime.now().microsecond
 
-    docker_names = execute_algorithm(alg_store.algorithm_dir(), docker_name, alg_store.groundtruth_dir(),
-                                     alg_store.input_dir(), alg_store.prediction_dir())
-    # for docker_name in docker_names:
-    #    p = finalize_docker(alg_store, docker_name)
-    #    print(p.returncode)
+    execute_algorithm(alg_store.algorithm_dir(), docker_name, alg_store.groundtruth_dir(),
+                      alg_store.input_dir(), alg_store.prediction_dir())
+
     return "Fine."
 
 
@@ -49,9 +47,18 @@ def prepare_setup_for_execution_in_docker(setup_file_path):
         print(sf.readlines())
 
 
-def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path, prediction_path):
+def create_evaluation_data(gt_data_path, input_data_path):
+    print("Data Setup")
     test_data_manager = ECGData(input_data_path, gt_data_path)
+    test_data_manager.__records_per_beat_type__ = 100
+    test_data_manager.__splice_size_start__ = 15
+    test_data_manager.__splice_size_end__ = 16
     input_data_path = test_data_manager.setup_evaluation_data()
+    return input_data_path
+
+
+def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path, prediction_path):
+    input_data_path = create_evaluation_data(gt_data_path, input_data_path)
     rt = subprocess.run(["systemctl", "--user", "start", "docker"], check=True).returncode
     print("Docker deamon start exited with: ", rt)
     docker_names = []
@@ -76,4 +83,5 @@ def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path, predi
         proc.wait()
 
     return docker_names
+
 

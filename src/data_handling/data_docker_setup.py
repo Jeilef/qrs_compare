@@ -206,9 +206,9 @@ class ECGData:
 
     def update_data_with_splices(self, spliced_data, meta, splice_size, beat_pos=0.5):
         for symbol, splices in spliced_data.items():
-            if symbol not in self.collected_data or splice_size not in self.collected_data[symbol] or \
-                    self.collected_data[symbol][splice_size] < self.__records_per_beat_type__:
-                for splice, rel_ann, abs_ann in splices:
+            for splice, rel_ann, abs_ann in splices:
+                if symbol not in self.collected_data or splice_size not in self.collected_data[symbol] or \
+                        self.collected_data[symbol][splice_size] < self.__records_per_beat_type__:
                     adapted_symbols, adapted_splices = self.create_all_noise_versions(splice, symbol, self.min_noise,
                                                                                       self.max_noise, self.num_noise)
                     self.collected_data.setdefault(symbol, {}).setdefault(splice_size, 0)

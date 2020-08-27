@@ -7,7 +7,7 @@ from werkzeug.utils import secure_filename
 
 class AlgorithmStore:
     __base_path__ = os.path.abspath("algorithms")
-    __general_data_path__ = os.path.abspath("comparison_data")
+    __general_data_path__ = os.path.abspath("platform_data")
 
     def __init__(self, alg_name, base_path=__base_path__, general_data_path=__general_data_path__):
         """

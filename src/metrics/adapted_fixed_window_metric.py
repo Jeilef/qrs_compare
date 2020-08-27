@@ -76,3 +76,42 @@ class AdFN(AdaptedFixedWindow):
 
     def compute(self):
         return self.fn_by_tol[-1]
+
+
+class AdPositivePredictiveValue(AdaptedFixedWindow):
+    __abbrev__ = "PPV"
+
+    def match_annotations(self, true_samples, true_symbols, test_samples, sampling_frequency=360):
+        super().match_annotations(true_samples, true_symbols, test_samples)
+        return self.compute()
+
+    def compute(self):
+        if len(self.tp_by_tol[-1]) == 0 == len(self.fp_by_tol[-1]):
+            return 0
+        return len(self.tp_by_tol[-1]) / (len(self.fp_by_tol[-1]) + len(self.tp_by_tol[-1]))
+
+
+class AdSensitivity(AdaptedFixedWindow):
+    __abbrev__ = "Sens"
+
+    def match_annotations(self, true_samples, true_symbols, test_samples, sampling_frequency=360):
+        super().match_annotations(true_samples, true_symbols, test_samples)
+        return self.compute()
+
+    def compute(self):
+        if len(self.tp_by_tol[-1]) == 0 == len(self.fn_by_tol[-1]):
+            return 0
+        return len(self.tp_by_tol[-1]) / (len(self.fn_by_tol[-1]) + len(self.tp_by_tol[-1]))
+
+
+class AdSpecificity(AdaptedFixedWindow):
+    __abbrev__ = "Spec"
+
+    def match_annotations(self, true_samples, true_symbols, test_samples, sampling_frequency=360):
+        super().match_annotations(true_samples, true_symbols, test_samples)
+        return self.compute()
+
+    def compute(self):
+        if len(self.tn_by_tol[-1]) == 0 == len(self.fp_by_tol[-1]):
+            return 0
+        return len(self.tn_by_tol[-1]) / (len(self.tn_by_tol[-1]) + len(self.fp_by_tol[-1]))
