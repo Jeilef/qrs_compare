@@ -4,11 +4,13 @@ import multiprocessing as mp
 import os
 import re
 from functools import reduce
+import numpy as np
 
 from wfdb import rdann
 
 from metrics.adapted_fixed_window_metric import AdPositivePredictiveValue, AdSensitivity, AdSpecificity
 from metrics.metric import MeanError, join
+from util.util import powerset
 
 
 def read_evaluated_algorithms():
@@ -30,16 +32,27 @@ def read_single_algorithm_results(alg_subdir):
 def evaluate_algorithm(alg_store):
     print("Evaluating...")
     acc_metrics = [MeanError, AdPositivePredictiveValue, AdSensitivity, AdSpecificity]
+    metric_values = {}
+    noise_names = ["em", "ma", "bw"]
+    ps = list(powerset(noise_names))
+    # need to be adapted to the available values
+    for noise_comb in ps:
+        noises = "_".join(noise_comb)
+        metric_values[noises] = {}
+        reg = "[a-zA-Z][0-9-_]+{}[0-9-_]+[.]atr".format(noises)
+        loaded_data = list(read_ann_files(alg_store, reg))
+        print("Loaded Eval Data")
+        with cf.ProcessPoolExecutor(max_workers=len(acc_metrics)) as pool:
+            computed_metrics = pool.map(evaluate_algorithm_with_metric,
+                                        acc_metrics,
+                                        list([loaded_data] * len(acc_metrics)))
+        for met_idx, met_per_beat in enumerate(computed_metrics):
+            for k in met_per_beat:
+                met_per_beat[k] = met_per_beat[k].compute()
+            metric_values[noises][acc_metrics[met_idx].__abbrev__] = met_per_beat
 
-    loaded_data = list(read_ann_files(alg_store))
-
-    print("Loaded Eval Data")
-    with cf.ProcessPoolExecutor(max_workers=len(acc_metrics)) as pool:
-        computed_metrics = pool.map(evaluate_algorithm_with_metric,
-                                    acc_metrics,
-                                    list([loaded_data] * len(acc_metrics)))
     print("Saving Evaluation Results to JSON")
-    convert_metrics_to_json(alg_store, list(computed_metrics))
+    convert_metrics_to_json(alg_store, metric_values)
 
 
 def read_ann_files(alg_store, file_name_regex=".*"):
@@ -108,15 +121,10 @@ def match_for_metric_on_data_part(ann_tuple, metric_class):
 
 
 def convert_metrics_to_json(alg_store, acc_metrics):
-    json_dict = {"Name": alg_store.alg_name}
-    print(acc_metrics.__class__, acc_metrics)
-    for typed_metrics in acc_metrics:
-        computed_metrics = {}
-        abbreviation = ""
-        for data_type in typed_metrics:
-            abbreviation = typed_metrics[data_type].__abbrev__
-            computed_metrics[data_type] = typed_metrics[data_type].compute()
-        json_dict[abbreviation] = computed_metrics
+    json_dict = {}
+    for key in acc_metrics:
+        json_dict[key]["Name"] = alg_store.alg_name
+        json_dict[key].update(acc_metrics[key])
 
     with open(os.path.join(alg_store.evaluation_dir(), "metrics.json"), "w") as metrics_file:
-        metrics_file.write(json.dumps(json_dict))
+        metrics_file.write(json.dumps(acc_metrics))

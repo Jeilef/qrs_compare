@@ -49,7 +49,7 @@ def prepare_setup_for_execution_in_docker(setup_file_path):
 
 def create_evaluation_data(gt_data_path, input_data_path):
     print("Data Setup")
-    test_data_manager = ECGData(input_data_path, gt_data_path)
+    test_data_manager = ECGData(input_data_path, gt_data_path, 0, 2, 3)
     test_data_manager.__records_per_beat_type__ = 100
     test_data_manager.__splice_size_start__ = 15
     test_data_manager.__splice_size_end__ = 16
@@ -63,10 +63,15 @@ def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path, predi
     print("Docker deamon start exited with: ", rt)
     docker_names = []
     docker_container = []
-    pattern = re.compile('.*[a-zA-Z]_[0-9].[0-9]_[0-9]+.*')
+    pattern = re.compile('.*[a-zA-Z]_[0-9][.][0-9]*[a-z_]*_[0-9]+.*')
     for input_data_folder in os.listdir(input_data_path):
-        if pattern.match(input_data_folder):
+        if not pattern.match(input_data_folder):
             continue
+        if len(docker_container) > 10:
+            for proc in docker_container:
+                proc.wait()
+            del docker_container
+            docker_container = []
         extended_name = str(docker_name) + input_data_folder
         docker_names.append(extended_name)
         # has to not exceed the memory - especially important for the eval data

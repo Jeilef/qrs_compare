@@ -17,6 +17,23 @@ function ppv_chart() {
     Plotly.newPlot('bar-chart-ppv', data, layout);
 }
 
+function spec_chart() {
+    const data = create_trace_for_metric($metric.Spec);
+    console.log("spec", data)
+    const layout = {
+        title: 'Specificity values per beat type',
+        width: 1500,
+        height: 500,
+        barmode: 'stack',
+        showlegend: true,
+        legend: {
+            x: 1,
+            y: 0.5
+        }
+    };
+    Plotly.newPlot('bar-chart-spec', data, layout);
+}
+
 function windowed_ppv_chart() {
     const data = create_trace_for_metric($metric["Windowed PPV"]);
     const layout = {
@@ -190,13 +207,14 @@ $(document).ready(function () {
     //windowed_ppv_chart();
     //windowed_spec_chart();
     sens_chart();
-    f1_chart()
-    windowed_f1_chart()
+   // f1_chart()
+   // windowed_f1_chart()
     me_chart()
-    mse_chart()
-    mae_chart()
-    roc_chart()
-    windowed_roc_chart()
+   // mse_chart()
+   // mae_chart()
+   // roc_chart()
+    // windowed_roc_chart()
+    spec_chart()
 })
 
 function create_trace_for_metric(metric){

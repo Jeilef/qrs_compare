@@ -10,7 +10,7 @@ $(document).ready( function () {
                 roc_vals.push(m_line.RoC);
                 delete m_line.RoC;
             }
-            Object.keys(m_line).forEach(function (a) {
+            Object.keys(m_line[""]).forEach(function (a) {
                 title_cols.add(a);
             })
         }
@@ -18,6 +18,7 @@ $(document).ready( function () {
     title_cols.forEach(function (x) {
         titles.push({"title": x});
     })
+    console.log(title_cols);
     // set table cols
     /*
     const tab = $('#results-table').DataTable({
@@ -34,7 +35,7 @@ $(document).ready( function () {
             second_head += "<th>Q2</th>"
             second_head += "<th class='border-right'>Q3</th>"
         }else{
-            first_head += '<th rowspan="2">' + x + '</th>';
+            first_head = '<th rowspan="2">' + x + '</th>' + first_head;
         }
     });
     first_head = "<thead><tr>" + first_head + "</tr>"
@@ -49,8 +50,9 @@ $(document).ready( function () {
     for(const metric_line in $metric){
         if($metric.hasOwnProperty(metric_line)){
             var m_line = $metric[metric_line];
-            var alg_name = m_line.Name;
-            var vals = Object.entries(m_line);
+
+            var vals = Object.entries(m_line[""]);
+            console.log(vals);
             var prepared_vals = vals.map(function (x) {
                  // split up data per datatype
                  if(x[0] === "Name"){

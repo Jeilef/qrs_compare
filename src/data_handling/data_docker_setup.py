@@ -24,7 +24,7 @@ class ECGData:
     __stepping_beat_position__ = False
 
     def __init__(self, data_folder_path=__signal_path__, ann_data_path=__annotation_path__,
-                 min_noise=0, max_noise=2, num_noise=9):
+                 min_noise=0, max_noise=2, num_noise=5):
 
         self.data_folder_path = data_folder_path
         self.ann_data_path = ann_data_path
@@ -209,8 +209,7 @@ class ECGData:
             for splice, rel_ann, abs_ann in splices:
                 if symbol not in self.collected_data or splice_size not in self.collected_data[symbol] or \
                         self.collected_data[symbol][splice_size] < self.__records_per_beat_type__:
-                    adapted_symbols, adapted_splices = self.create_all_noise_versions(splice, symbol, self.min_noise,
-                                                                                      self.max_noise, self.num_noise)
+                    adapted_symbols, adapted_splices = self.create_all_noise_versions(splice, symbol)
                     self.collected_data.setdefault(symbol, {}).setdefault(splice_size, 0)
                     self.collected_data[symbol][splice_size] += 1
                     self.process_adapted_splices(adapted_splices, adapted_symbols, meta, rel_ann, splice_size, beat_pos)
@@ -222,13 +221,13 @@ class ECGData:
             self.test_annotations.setdefault(sym, []).append(rel_ann)
             self.test_fields.setdefault(sym, []).append(meta)
 
-    def create_all_noise_versions(self, splice, symbol, min=0, max=2, count=9):
+    def create_all_noise_versions(self, splice, symbol):
         symbols = []
         splices = []
         noise_data = self.get_noise_samples(len(splice))
         noise_names = ["em", "ma", "bw"]
         ps = list(powerset(range(len(noise_data))))
-        for scaling_factor in np.linspace(min, max, count):
+        for scaling_factor in np.linspace(self.min_noise, self.max_noise, self.num_noise):
             for n_idx, noises in enumerate(ps):
                 if scaling_factor == 0 and n_idx > 0:
                     continue
@@ -285,7 +284,7 @@ class ECGData:
             self.create_subdir_per_dataset()
             for beat_type, datasets in self.test_samples.items():
                 self.save_typed_datasets(beat_type, datasets)
-        print(self.failed_writes)
+            print("failed: ", self.failed_writes)
         return self.data_folder_path
 
     def save_beat_type(self, beat_type):
