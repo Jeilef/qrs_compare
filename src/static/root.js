@@ -52,11 +52,11 @@ $(document).ready( function () {
             var m_line = $metric[metric_line];
 
             var vals = Object.entries(m_line[""]);
-            console.log(vals);
-            var prepared_vals = vals.map(function (x) {
+            var prepared_vals = [];
+            vals.forEach(function (x, idx) {
                  // split up data per datatype
                  if(x[0] === "Name"){
-                     return x[1];
+                     prepared_vals = [x[1]].concat(prepared_vals);
                  }
                  var keys_per_datatype = Object.keys(x[1]);
                  var vals_per_datatype = Object.values(x[1]);
@@ -72,14 +72,14 @@ $(document).ready( function () {
                  //return "<div id='box-plot-" + x[0] + alg_name + "'></div>";
 
                  if(typeof(q1) === "number"){
-                     return [q1.toFixed(4),
-                            q2.toFixed(4),
-                            q3.toFixed(4)]
+                     prepared_vals = prepared_vals.concat([q1.toFixed(4),
+                                                            q2.toFixed(4),
+                                                            q3.toFixed(4)])
                  }else{
                      // is a roc value
                  }
             });
-            prepared_vals = prepared_vals.flat();
+            //prepared_vals = prepared_vals.flat();
             while(prepared_vals.length < title_cols.length){
                 prepared_vals.add(-1)
             }

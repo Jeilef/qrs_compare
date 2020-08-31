@@ -121,10 +121,8 @@ def match_for_metric_on_data_part(ann_tuple, metric_class):
 
 
 def convert_metrics_to_json(alg_store, acc_metrics):
-    json_dict = {}
     for key in acc_metrics:
-        json_dict[key]["Name"] = alg_store.alg_name
-        json_dict[key].update(acc_metrics[key])
+        acc_metrics[key]["Name"] = alg_store.alg_name
 
     with open(os.path.join(alg_store.evaluation_dir(), "metrics.json"), "w") as metrics_file:
         metrics_file.write(json.dumps(acc_metrics))

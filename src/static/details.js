@@ -1,7 +1,7 @@
 let chart_num = 0;
 
 function ppv_chart() {
-    const data = create_trace_for_metric($metric.PPV);
+    const data = create_trace_for_metric($metric[""].PPV);
     console.log("ppv", data)
     const layout = {
         title: 'PPV values per beat type',
@@ -18,7 +18,7 @@ function ppv_chart() {
 }
 
 function spec_chart() {
-    const data = create_trace_for_metric($metric.Spec);
+    const data = create_trace_for_metric($metric[""].Spec);
     console.log("spec", data)
     const layout = {
         title: 'Specificity values per beat type',
@@ -35,7 +35,7 @@ function spec_chart() {
 }
 
 function windowed_ppv_chart() {
-    const data = create_trace_for_metric($metric["Windowed PPV"]);
+    const data = create_trace_for_metric($metric[""]["Windowed PPV"]);
     const layout = {
         title: 'Windowed PPV values per beat type',
         width: 1500,
@@ -51,7 +51,7 @@ function windowed_ppv_chart() {
 }
 
 function windowed_spec_chart() {
-    const data = create_trace_for_metric($metric["Windowed Speci"]);
+    const data = create_trace_for_metric($metric[""]["Windowed Speci"]);
     const layout = {
         title: 'Windowed Specificity values per beat type',
         width: 1500,
@@ -67,7 +67,7 @@ function windowed_spec_chart() {
 }
 
 function sens_chart() {
-    const data = create_trace_for_metric($metric.Sens);
+    const data = create_trace_for_metric($metric[""].Sens);
     const layout = {
         title: 'Sensitivity values per beat type',
         barmode: 'stack',
@@ -84,7 +84,7 @@ function sens_chart() {
 }
 
 function f1_chart() {
-    const data = create_trace_for_metric($metric["F1 Score"]);
+    const data = create_trace_for_metric($metric[""]["F1 Score"]);
     const layout = {
         title: 'F1 Score values per beat type',
         barmode: 'stack',
@@ -101,7 +101,7 @@ function f1_chart() {
 }
 
 function windowed_f1_chart() {
-    const data = create_trace_for_metric($metric["Windowed F1"]);
+    const data = create_trace_for_metric($metric[""]["Windowed F1"]);
     const layout = {
         title: 'Windowed F1 Score values per beat type',
         barmode: 'stack',
@@ -118,7 +118,7 @@ function windowed_f1_chart() {
 }
 
 function me_chart() {
-    const data = create_trace_for_metric($metric["ME"]);
+    const data = create_trace_for_metric($metric[""]["ME"]);
     const layout = {
         title: 'Mean Error per beat type',
         barmode: 'stack',
@@ -135,7 +135,7 @@ function me_chart() {
 }
 
 function mse_chart() {
-    const data = create_trace_for_metric($metric["MSE"]);
+    const data = create_trace_for_metric($metric[""]["MSE"]);
     const layout = {
         title: 'Mean Squared Error per beat type',
         barmode: 'stack',
@@ -152,7 +152,7 @@ function mse_chart() {
 }
 
 function mae_chart() {
-    const data = create_trace_for_metric($metric["MAE"]);
+    const data = create_trace_for_metric($metric[""]["MAE"]);
     const layout = {
         title: 'Mean Absolute Error per beat type',
         barmode: 'stack',
@@ -169,7 +169,7 @@ function mae_chart() {
 }
 
 function roc_chart() {
-    const data = create_trace_for_tuple_metric($metric["RoC"]);
+    const data = create_trace_for_tuple_metric($metric[""]["RoC"]);
     const layout = {
         title: 'PPV and FPR per beat type',
         //barmode: 'group',
@@ -186,7 +186,7 @@ function roc_chart() {
 }
 
 function windowed_roc_chart() {
-    const data = create_trace_for_tuple_metric($metric["Windowed PPV/Spec"]);
+    const data = create_trace_for_tuple_metric($metric[""]["Windowed PPV/Spec"]);
     const layout = {
         title: 'Windowed PPV and FPR per beat type',
         //barmode: 'group',
@@ -203,10 +203,10 @@ function windowed_roc_chart() {
 }
 
 $(document).ready(function () {
-    ppv_chart();
+    //ppv_chart();
     //windowed_ppv_chart();
     //windowed_spec_chart();
-    sens_chart();
+    //sens_chart();
    // f1_chart()
    // windowed_f1_chart()
     me_chart()
@@ -214,7 +214,10 @@ $(document).ready(function () {
    // mae_chart()
    // roc_chart()
     // windowed_roc_chart()
-    spec_chart()
+    //spec_chart()
+    ppv_scatter_plot()
+    sens_scatter_plot()
+    spec_scatter_plot()
 })
 
 function create_trace_for_metric(metric){
@@ -307,4 +310,53 @@ function map_beat_type_to_description(beat_type){
         }
     })
     return description
+}
+
+function ppv_scatter_plot(){
+    scatter_plot('PPV', 'ppv-scatter-plot', 'Positive Predictive Value for different noise combinations')
+}
+
+function sens_scatter_plot(){
+    scatter_plot('Sens', 'sens-scatter-plot', 'Sensitivity for different noise combinations')
+}
+
+function spec_scatter_plot(){
+    scatter_plot('Spec', 'spec-scatter-plot', 'Specificity for different noise combinations')
+}
+
+function scatter_plot(metric_name, html_id, title){
+    var data = [];
+    Object.entries($metric).forEach(function (metric_entry) {
+        const noise_comb = metric_entry[0];
+        console.log(noise_comb, metric_entry);
+        var x_values = [];
+        var y_values = [];
+        Object.entries(metric_entry[1][metric_name]).forEach(function (type_entry) {
+            const beat_type = type_entry[0];
+            const metric_values = type_entry[1];
+            x_values.push(beat_type);
+            y_values.push(metric_values);
+        })
+        var trace1 = {
+          x: x_values,
+          y: y_values,
+          mode: 'markers',
+          type: 'scatter',
+          name: noise_comb,
+          text: noise_comb,
+          marker: { size: 12 }
+        };
+        data.push(trace1);
+    })
+
+    var layout = {
+        width: 1500,
+        height: 500,
+      yaxis: {
+        range: [-0.025, 1.015]
+      },
+      title: title
+    };
+
+    Plotly.newPlot(html_id, data, layout);
 }

@@ -22,6 +22,7 @@ class ECGData:
     __splice_size_end__ = 11
     __splice_size_step_size__ = 2
     __stepping_beat_position__ = False
+    __num_noises__ = 3
 
     def __init__(self, data_folder_path=__signal_path__, ann_data_path=__annotation_path__,
                  min_noise=0, max_noise=2, num_noise=5):
@@ -245,25 +246,24 @@ class ECGData:
         scaled_noise = np.multiply(noise_data[noise_idx], scaling_factor).reshape(splice.shape)
         return scaled_noise
 
-    def get_noise_samples(self, duration):
+    def get_noise_samples(self, duration, num_noises=__num_noises__):
         if self.last_noise_idx + duration < len(self.electrode_movement_noise):
             noise_data = [self.electrode_movement_noise[self.last_noise_idx: self.last_noise_idx + duration],
                           self.muscle_artifact_noise[self.last_noise_idx: self.last_noise_idx + duration],
                           self.baseline_wander_noise[self.last_noise_idx: self.last_noise_idx + duration]
                           ]
             self.last_noise_idx = self.last_noise_idx + duration
-            return noise_data
         else:
             overhang = self.last_noise_idx + duration - len(self.electrode_movement_noise)
-            noise_data = [np.concatenate(
-                [self.electrode_movement_noise[self.last_noise_idx:], self.electrode_movement_noise[:overhang]]),
+            noise_data = [np.concatenate([self.electrode_movement_noise[self.last_noise_idx:],
+                                          self.electrode_movement_noise[:overhang]]),
                           np.concatenate([self.muscle_artifact_noise[self.last_noise_idx:],
                                           self.muscle_artifact_noise[:overhang]]),
                           np.concatenate([self.baseline_wander_noise[self.last_noise_idx:],
                                           self.baseline_wander_noise[:overhang]])
                           ]
             self.last_noise_idx = overhang
-            return noise_data
+        return noise_data[:num_noises]
 
     def create_subdir_per_dataset(self):
         for key in self.test_samples.keys():

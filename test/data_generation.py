@@ -33,14 +33,15 @@ class MockAlgStore(AlgorithmStore):
 def create_all_data(base_path="../comparison_data_large_slices"):
 
     ecg = ECGData(base_path + "/signal",
-                  base_path + "/annotations", min_noise=0, max_noise=2, num_noise=5)
+                  base_path + "/annotations", min_noise=0, max_noise=1, num_noise=2)
 
     ecg.read_noise_data()
-    ecg.__records_per_beat_type__ = 5000
-    ecg.__splice_size_start__ = 5
-    ecg.__splice_size_end__ = 26
+    ecg.__records_per_beat_type__ = 10000
+    ecg.__splice_size_start__ = 20
+    ecg.__splice_size_end__ = 21
     ecg.__splice_size_step_size__ = 5
     ecg.__stepping_beat_position__ = False
+    ecg.__num_noises__ = 2
     ecg.setup_evaluation_data()
     print("failed writes: ", ecg.failed_writes)
 
@@ -189,8 +190,8 @@ def long_sliced_data():
 if __name__ == "__main__":
     # generate_predictions("data/algorithm_prediction/", "../comparison_data/")
     # N_0-5_em_ma_3_2177, S_0-0_3_264
-    base_path = "../comparison_data_beat_types/"
+    base_path = "../paper_comparison/"
     create_all_data(base_path)
-    generate_predictions_with_metrics(base_path, "data/latex_data/equal-beat-types")
+    generate_predictions_with_metrics(base_path, "data/latex_data/paper-comparison")
 
     #create_all_data()
