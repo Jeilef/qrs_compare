@@ -122,7 +122,7 @@ def generate_metric_values(prediction_dir, splice_save_dir):
 
 def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/",
                                       metric_path="data/latex_data/direct-metrics"):
-    p = re.compile('.*N_[0-9].[0-9]+[a-zA-Z_]*_[0-9]+.*')
+    p = re.compile('.*[a-zA-Z]_[0-9].[0-9]+[a-zA-Z_]*_[0-9]+.*')
     metrics = [MeanError, AdTP, AdFP, AdTN, AdFN]
     os.makedirs(metric_path, exist_ok=True)
 
@@ -191,7 +191,7 @@ if __name__ == "__main__":
     # generate_predictions("data/algorithm_prediction/", "../comparison_data/")
     # N_0-5_em_ma_3_2177, S_0-0_3_264
     base_path = "../paper_comparison/"
-    create_all_data(base_path)
+    # create_all_data(base_path)
     generate_predictions_with_metrics(base_path, "data/latex_data/paper-comparison")
 
     #create_all_data()

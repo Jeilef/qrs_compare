@@ -77,8 +77,7 @@ def read_ann_file(alg_store, ann_file):
         sampling_frequency = gt_ann_ref.fs
         gt_beat_type = gt_ann_ref.symbol[1]
 
-        return create_evaluation_format(ann_file_type, anno, gt_beat_type, pred_beats,
-                                        sampling_frequency)
+        return create_evaluation_format(ann_file_type, anno, gt_beat_type, pred_beats, sampling_frequency)
     else:
         # occurs if algorithm does not output any annotation
         # print("No Output")

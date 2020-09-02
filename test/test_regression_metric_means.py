@@ -4,7 +4,7 @@ import numpy as np
 
 from algorithm_evaluation import read_ann_files, evaluate_algorithm_with_metric
 from algorithm_store import AlgorithmStore
-from metrics.metric import MeanError
+from metrics.metric import MeanError, RegressionMetric
 
 
 class TestRegressionMetrics(unittest.TestCase):
@@ -29,3 +29,10 @@ class TestRegressionMetrics(unittest.TestCase):
                 file_data += "{} {}\n".format(hist[1][i], hist[0][i])
             with open("data/latex_data/offset-al{}.dat".format(alg_num), "w+") as data_file:
                 data_file.write(file_data)
+
+    def test_reg_metric_does_not_error(self):
+        gt = [7388]
+        pred = [6482, 6977, 7472]
+        fs = 500
+        metric = MeanError()
+        metric.match_annotations(gt, ["N"]*len(gt), pred, fs)

@@ -72,7 +72,7 @@ class RegressionMetric(Metric):
                 next_idx += 1 if next_idx < len(true_samples) - 1 else 0
                 next_complex = true_samples[next_idx]
             if (ts - current_complex)/sampling_frequency < -1:
-                print(true_samples, test_samples, sampling_frequency)
+                print("reg metric error: ", true_samples, test_samples, sampling_frequency)
             self.distance_to_true.append((ts - current_complex)/sampling_frequency)
 
         return self.compute()
