@@ -209,7 +209,7 @@ $(document).ready(function () {
     //sens_chart();
    // f1_chart()
    // windowed_f1_chart()
-    me_chart()
+    //me_chart()
    // mse_chart()
    // mae_chart()
    // roc_chart()
@@ -218,6 +218,7 @@ $(document).ready(function () {
     ppv_scatter_plot()
     sens_scatter_plot()
     spec_scatter_plot()
+    me_scatter_plot()
 })
 
 function create_trace_for_metric(metric){
@@ -312,6 +313,10 @@ function map_beat_type_to_description(beat_type){
     return description
 }
 
+function me_scatter_plot(){
+    scatter_plot('ME', 'me-scatter-plot', 'Mean Error for different noise combinations', -0.525, 0.525)
+}
+
 function ppv_scatter_plot(){
     scatter_plot('PPV', 'ppv-scatter-plot', 'Positive Predictive Value for different noise combinations')
 }
@@ -324,7 +329,7 @@ function spec_scatter_plot(){
     scatter_plot('Spec', 'spec-scatter-plot', 'Specificity for different noise combinations')
 }
 
-function scatter_plot(metric_name, html_id, title){
+function scatter_plot(metric_name, html_id, title, from=-0.025, to=1.025){
     var data = [];
     Object.entries($metric).forEach(function (metric_entry) {
         const noise_comb = metric_entry[0];
@@ -353,7 +358,7 @@ function scatter_plot(metric_name, html_id, title){
         width: 1500,
         height: 500,
       yaxis: {
-        range: [-0.025, 1.015]
+        range: [from, to]
       },
       title: title
     };
