@@ -11,13 +11,13 @@ BEAT_CODE_DESCRIPTIONS = {
     "J": "Nodal (junctional) premature beat",
     "S": "Supraventricular premature or ectopic beat (atrial or nodal)",
     "V": "Premature ventricular contraction",
-    "r": "R-on-T premature ventricular contraction",
+#    "r": "R-on-T premature ventricular contraction",
     "F": "Fusion of ventricular and normal beat",
     "e": "Atrial escape beat",
     "j": "Nodal (junctional) escape beat",
-    "n": "Supraventricular escape beat (atrial or nodal)",
+ #   "n": "Supraventricular escape beat (atrial or nodal)",
     "E": "Ventricular escape beat",
-    "f": "Fusion of paced and normal beat"
+ #   "f": "Fusion of paced and normal beat"
  #   "Q": "Unclassifiable beat"
 }
 

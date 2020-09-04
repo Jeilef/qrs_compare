@@ -225,7 +225,7 @@ class ECGData:
     def create_all_noise_versions(self, splice, symbol):
         symbols = []
         splices = []
-        noise_data = self.get_noise_samples(len(splice))
+        noise_data = self.get_noise_samples(len(splice), self.__num_noises__)
         noise_names = ["em", "ma", "bw"]
         ps = list(powerset(range(len(noise_data))))
         for scaling_factor in np.linspace(self.min_noise, self.max_noise, self.num_noise):
@@ -263,7 +263,7 @@ class ECGData:
                                           self.baseline_wander_noise[:overhang]])
                           ]
             self.last_noise_idx = overhang
-        return noise_data[:num_noises]
+        return noise_data[:num_noises,]
 
     def create_subdir_per_dataset(self):
         for key in self.test_samples.keys():
