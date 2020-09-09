@@ -73,8 +73,8 @@ def group_metrics_for_splice_size_noise_level():
 
 
 def group_metrics_for_algorithm_splice_size():
-    metric_file_path = "data/latex_data/direct-metrics-per-alg"
-    grouped_metric_file_path = "data/latex_data/direct-metrics-per-alg-grouped"
+    metric_file_path = "data/latex_data/large-slices"
+    grouped_metric_file_path = metric_file_path + "-grouped"
 
     files_to_group = {}
     for dirpath, subdir, filenames in os.walk(metric_file_path):
@@ -93,8 +93,8 @@ def group_metrics_for_algorithm_splice_size():
 
 def group_metrics_for_algorithm_and_beat_type():
     # transforms TP, FP, TN, FN to PPV Sens and Spec
-    metric_file_path = "data/latex_data/paper-comparison-only-normal"
-    grouped_metric_file_path = "data/latex_data/paper-comparison-only-normal-grouped"
+    metric_file_path = "data/latex_data/paper-comparison"
+    grouped_metric_file_path = "data/latex_data/paper-comparison-grouped"
 
     files_to_group = {}
     for dirpath, subdir, filenames in os.walk(metric_file_path):
@@ -114,10 +114,10 @@ def group_metrics_for_algorithm_and_beat_type():
 
 
 def group_submetrics(files_to_group):
-    regrouped_files = {}
+    regrouped_files = files_to_group
     for alg, alg_vals in files_to_group.items():
         regrouped_files.setdefault(alg, {})
-        regrouped_files[alg]["ME"] = files_to_group[alg]["ME"]
+        # regrouped_files[alg]["ME"] = files_to_group[alg]["ME"]
         tp_vals = alg_vals["TP"]
         fp_vals = alg_vals["FP"]
         tn_vals = alg_vals["TN"]
@@ -144,7 +144,7 @@ def double_metric_compute(a, b):
 
 
 if __name__ == '__main__':
-    # group_metrics_for_algorithm_splice_size()
+    group_metrics_for_algorithm_splice_size()
     # group_metrics_for_beat_position_algorithm()
     # group_metrics_by_splice_size()
-    group_metrics_for_algorithm_and_beat_type()
+    # group_metrics_for_algorithm_and_beat_type()

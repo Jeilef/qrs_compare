@@ -33,15 +33,15 @@ class MockAlgStore(AlgorithmStore):
 def create_all_data(base_path="../comparison_data_large_slices"):
 
     ecg = ECGData(base_path + "/signal",
-                  base_path + "/annotations", min_noise=0, max_noise=1, num_noise=2)
+                  base_path + "/annotations", min_noise=1, max_noise=1, num_noise=1)
 
     ecg.read_noise_data()
     ecg.__records_per_beat_type__ = 10000
-    ecg.__splice_size_start__ = 20
-    ecg.__splice_size_end__ = 21
-    ecg.__splice_size_step_size__ = 5
+    ecg.__splice_size_start__ = 5
+    ecg.__splice_size_end__ = 26
+    ecg.__splice_size_step_size__ = 4
     ecg.__stepping_beat_position__ = False
-    ecg.__num_noises__ = 2
+    ecg.__num_noises__ = 3
     ecg.setup_evaluation_data()
     print("failed writes: ", ecg.failed_writes)
 
@@ -121,8 +121,9 @@ def generate_metric_values(prediction_dir, splice_save_dir):
 
 
 def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/",
-                                      metric_path="data/latex_data/direct-metrics"):
-    p = re.compile('.*[a-zA-Z]_[0-9].[0-9]+[a-zA-Z_]*_[0-9]+.*')
+                                      metric_path="data/latex_data/direct-metrics",
+                                      regex='.*[a-zA-Z]_[0-9].[0-9]+[a-zA-Z_]*_[0-9]+.*'):
+    p = re.compile(regex)
     metrics = [MeanError, AdTP, AdFP, AdTN, AdFN]
     os.makedirs(metric_path, exist_ok=True)
 
@@ -145,8 +146,8 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
 
                 if ann_file_exists and rec_file_exists:
                     try:
-                        annotation = func_timeout(5, wfdb.rdann, args=(ann_file_name, 'atr'))
-                        sample, meta = func_timeout(5, wfdb.rdsamp, args=(rec_file_name,), kwargs={"channels": [0]})
+                        annotation = wfdb.rdann(ann_file_name, 'atr')
+                        sample, meta = wfdb.rdsamp(rec_file_name, channels=[0])
                     except:
                         print("Failed reading sample", r)
                         continue
@@ -164,7 +165,9 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
                                 print("exists")
                                 continue
                             typed_metrics.setdefault(alg_name, {})
+                            print(alg_name, "start")
                             r_peaks = alg_func(meta, rec_name, "", sample, save=False)
+                            print(alg_name, "end")
                             if len(r_peaks) == 0:
                                 eval_tuple = [annotation.sample[1]], [annotation.symbol[1]], [], meta['fs'], r[0]
                             else:
@@ -183,15 +186,10 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
                         splice_file.write(str(combined_metric.compute()))
 
 
-def long_sliced_data():
-    generate_predictions_with_metrics("../comparison_data_large_slices/", "data/latex_data/large-slices")
-
-
 if __name__ == "__main__":
     # generate_predictions("data/algorithm_prediction/", "../comparison_data/")
     # N_0-5_em_ma_3_2177, S_0-0_3_264
-    base_path = "../paper_comparison/"
-    # create_all_data(base_path)
-    generate_predictions_with_metrics(base_path, "data/latex_data/paper-comparison")
-
-    #create_all_data()
+    base_path = "../noise-variants-for-slice-sizes/"
+    #create_all_data(base_path)
+    generate_predictions_with_metrics(base_path, "data/latex_data/noise-variants-slice-sizes",
+                                      '.*N_[0-9].[0-9]+[a-zA-Z_]*_[0-9]+.*')

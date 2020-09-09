@@ -263,7 +263,7 @@ class ECGData:
                                           self.baseline_wander_noise[:overhang]])
                           ]
             self.last_noise_idx = overhang
-        return noise_data[:num_noises,]
+        return noise_data[:num_noises]
 
     def create_subdir_per_dataset(self):
         for key in self.test_samples.keys():
