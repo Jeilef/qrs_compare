@@ -166,7 +166,12 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
                                 continue
                             typed_metrics.setdefault(alg_name, {})
                             print(alg_name, "start")
-                            r_peaks = alg_func(meta, rec_name, "", sample, save=False)
+                            if alg_name == "xqrs":
+                                # needed because xqrs sometimes hangs itself
+                                r_peaks = func_timeout(5, alg_func, args=(meta, rec_name, "", sample),
+                                                       kwargs={"save": False})
+                            else:
+                                r_peaks = alg_func(meta, rec_name, "", sample, save=False)
                             print(alg_name, "end")
                             if len(r_peaks) == 0:
                                 eval_tuple = [annotation.sample[1]], [annotation.symbol[1]], [], meta['fs'], r[0]
