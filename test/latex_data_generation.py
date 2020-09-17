@@ -53,25 +53,6 @@ def group_metrics_for_beat_position_algorithm():
     save_grouped_metrics(files_to_group, grouped_metric_file_path)
 
 
-def group_metrics_for_splice_size_noise_level():
-    metric_file_path = "data/latex_data/direct-metrics"
-    grouped_metric_file_path = "data/latex_data/direct-metrics-grouped"
-
-    files_to_group = {}
-    for dirpath, subdir, filenames in os.walk(metric_file_path):
-        for fn in filenames:
-            metric_name = fn.split("-")[-1].split(".")[0]
-            splice_size = fn.split("-")[0].split("_")[-1]
-            noise_level = fn.split("-")[0].split("_")[1]
-            files_to_group.setdefault(metric_name, {}).setdefault(noise_level, {}).setdefault(splice_size, [])
-
-            with open(os.path.join(metric_file_path, fn), "r") as metric_file:
-                metric_value = float(metric_file.readlines()[0])
-            files_to_group[metric_name][noise_level][splice_size].append(metric_value)
-
-    save_grouped_metrics(files_to_group, grouped_metric_file_path)
-
-
 def group_metrics_for_algorithm_splice_size():
     metric_file_path = "data/latex_data/large-slices"
     grouped_metric_file_path = metric_file_path + "-grouped"
@@ -113,6 +94,31 @@ def group_metrics_for_algorithm_and_beat_type():
     save_grouped_metrics(regrouped_files, grouped_metric_file_path)
 
 
+def group_metrics_for_algorithm_and_noise_combination():
+    # uses TP, FP, TN, FN to calculate PPV Sens and Spec
+    metric_file_path = "data/latex_data/noise-variants-beat-types"
+    grouped_metric_file_path = "data/latex_data/noise-variants-beat-types-grouped"
+
+    files_to_group = {}
+    for dirpath, subdir, filenames in os.walk(metric_file_path):
+        for fn in filenames:
+            metric = fn.split("--")[-1].split(".")[0]
+            algorithm = fn.split("--")[1]
+            beat_type = fn.split("_")[0]
+            noise_comb = fn.split("-")[0].split("_", 2)[-1].rsplit("_", 2)
+            noise_comb = "none" if len(noise_comb) < 3 else noise_comb[0].replace("_", "-")
+            noise_comb = "-".join([beat_type, noise_comb])
+            files_to_group.setdefault(algorithm, {}).setdefault(metric, {}).setdefault(noise_comb, [])
+
+            with open(os.path.join(metric_file_path, fn), "r") as metric_file:
+                metric_value = float(metric_file.readlines()[0])
+            files_to_group[algorithm][metric][noise_comb].append(metric_value)
+
+    regrouped_files = group_submetrics(files_to_group)
+
+    save_grouped_metrics(regrouped_files, grouped_metric_file_path)
+
+
 def group_submetrics(files_to_group):
     regrouped_files = files_to_group
     for alg, alg_vals in files_to_group.items():
@@ -135,6 +141,25 @@ def group_submetrics(files_to_group):
                                                                                     fp_vals[beat_type][idx]))
     return regrouped_files
 
+def group_metrics_for_slice_size_noise_combination():
+    metric_file_path = "data/latex_data/noise-variants-slice-sizes"
+    grouped_metric_file_path = "data/latex_data/noise-variants-slice-sizes-grouped"
+
+    files_to_group = {}
+    for dirpath, subdir, filenames in os.walk(metric_file_path):
+        for fn in filenames:
+            metric_name = fn.split("-")[-1].split(".")[0]
+            splice_size = fn.split("-")[0].split("_")[-1]
+            noise_comb = fn.split("-")[0].split("_", 2)[-1].rsplit("_", 2)
+            noise_comb = "none" if len(noise_comb) < 3 else noise_comb[0]
+            files_to_group.setdefault(metric_name, {}).setdefault(noise_comb, {}).setdefault(splice_size, [])
+
+            with open(os.path.join(metric_file_path, fn), "r") as metric_file:
+                metric_value = float(metric_file.readlines()[0])
+            files_to_group[metric_name][noise_comb][splice_size].append(metric_value)
+
+    save_grouped_metrics(files_to_group, grouped_metric_file_path)
+
 
 def double_metric_compute(a, b):
     if a == 0 and b == 0:
@@ -144,7 +169,9 @@ def double_metric_compute(a, b):
 
 
 if __name__ == '__main__':
-    group_metrics_for_algorithm_splice_size()
+    group_metrics_for_algorithm_and_noise_combination()
+    # group_metrics_for_slice_size_noise_combination()
+    # group_metrics_for_algorithm_splice_size()
     # group_metrics_for_beat_position_algorithm()
     # group_metrics_by_splice_size()
     # group_metrics_for_algorithm_and_beat_type()

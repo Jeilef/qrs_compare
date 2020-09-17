@@ -37,8 +37,8 @@ def create_all_data(base_path="../comparison_data_large_slices"):
 
     ecg.read_noise_data()
     ecg.__records_per_beat_type__ = 10000
-    ecg.__splice_size_start__ = 5
-    ecg.__splice_size_end__ = 26
+    ecg.__splice_size_start__ = 20
+    ecg.__splice_size_end__ = 21
     ecg.__splice_size_step_size__ = 4
     ecg.__stepping_beat_position__ = False
     ecg.__num_noises__ = 3
@@ -193,8 +193,7 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
 
 if __name__ == "__main__":
     # generate_predictions("data/algorithm_prediction/", "../comparison_data/")
-    # N_0-5_em_ma_3_2177, S_0-0_3_264
-    base_path = "../noise-variants-for-slice-sizes/"
-    #create_all_data(base_path)
-    generate_predictions_with_metrics(base_path, "data/latex_data/noise-variants-slice-sizes",
-                                      '.*N_[0-9].[0-9]+[a-zA-Z_]*_[0-9]+.*')
+    base_path = "../noise-variants-beat-types/"
+    create_all_data(base_path)
+    generate_predictions_with_metrics(base_path, "data/latex_data/noise-variants-beat-types",
+                                      '.*[a-zA-Z]_[0-9.]+[a-zA-Z_]*[0-9_.]+.*')
