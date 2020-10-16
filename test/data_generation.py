@@ -200,19 +200,14 @@ if __name__ == "__main__":
     for idx in range(10):
         # 1.6 mil files
         start = time.time()
-        base_path = "../speed-test/"
+        base_path = "../speed-test" + str(idx)+ "/"
         create_all_data(base_path)
         creation_speeds.append(time.time() - start)
         start = time.time()
-        generate_predictions_with_metrics(base_path, "data/latex_data/speed-test",
+        generate_predictions_with_metrics(base_path, "data/latex_data/speed-test" + str(idx),
                                           '.*[a-zA-Z]_[0-9.]+[a-zA-Z_]*[0-9_.]+.*')
         evaluation_speeds.append(time.time() - start)
         print(creation_speeds, evaluation_speeds)
-        print("Removing artifacts")
-        os.rmdir(base_path)
-        print("Removing 50%")
-        os.rmdir("data/latex_data/speed-test")
-        print("Removing done")
 
     with open("data/speed-test.dat", "w") as speed_test_file:
         c_speeds = "\n".join(list(map(str, creation_speeds)))
