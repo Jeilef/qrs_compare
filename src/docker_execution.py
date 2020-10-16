@@ -1,4 +1,4 @@
-import datetime
+b   import datetime
 import os
 import re
 import shutil
@@ -12,14 +12,16 @@ def setup_docker(alg_store):
     A zip file is expected to contain a setup.sh which prepares the VM for code execution. One can assume that
     :return:
     """
-    # remove for testing fully deployable scripts
+
     prepare_setup_for_execution_in_docker(alg_store.setup_file_path())
 
     docker_name = datetime.datetime.now().microsecond
 
-    execute_algorithm(alg_store.algorithm_dir(), docker_name, alg_store.groundtruth_dir(),
-                      alg_store.input_dir(), alg_store.prediction_dir())
-
+    docker_names = execute_algorithm(alg_store.algorithm_dir(), docker_name, alg_store.groundtruth_dir(),
+                                     alg_store.input_dir(), alg_store.prediction_dir())
+    # for docker_name in docker_names:
+    #    p = finalize_docker(alg_store, docker_name)
+    #    print(p.returncode)
     return "Fine."
 
 
@@ -47,32 +49,17 @@ def prepare_setup_for_execution_in_docker(setup_file_path):
         print(sf.readlines())
 
 
-def create_evaluation_data(gt_data_path, input_data_path):
-    print("Data Setup")
-    test_data_manager = ECGData(input_data_path, gt_data_path, 2, 2, 1)
-    test_data_manager.__records_per_beat_type__ = 5000
-    test_data_manager.__splice_size_start__ = 20
-    test_data_manager.__splice_size_end__ = 21
-    test_data_manager.__num_noises__ = 2
-    input_data_path = test_data_manager.setup_evaluation_data()
-    return input_data_path
-
-
 def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path, prediction_path):
-    input_data_path = create_evaluation_data(gt_data_path, input_data_path)
+    test_data_manager = ECGData(input_data_path, gt_data_path)
+    input_data_path = test_data_manager.setup_evaluation_data()
     rt = subprocess.run(["systemctl", "--user", "start", "docker"], check=True).returncode
     print("Docker deamon start exited with: ", rt)
     docker_names = []
     docker_container = []
-    pattern = re.compile('.*[a-zA-Z]_[0-9][.][0-9]*[a-z_]*_[0-9]+.*')
+    pattern = re.compile('.*[a-zA-Z]_[0-9].[0-9]_[0-9]+.*')
     for input_data_folder in os.listdir(input_data_path):
-        if not pattern.match(input_data_folder):
+        if pattern.match(input_data_folder):
             continue
-        if len(docker_container) > 20:
-            for proc in docker_container:
-                proc.wait()
-            del docker_container
-            docker_container = []
         extended_name = str(docker_name) + input_data_folder
         docker_names.append(extended_name)
         # has to not exceed the memory - especially important for the eval data
@@ -89,5 +76,4 @@ def execute_algorithm(alg_dir, docker_name, gt_data_path, input_data_path, predi
         proc.wait()
 
     return docker_names
-
 
