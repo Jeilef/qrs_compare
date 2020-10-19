@@ -38,8 +38,8 @@ def create_all_data(base_path="../comparison_data_large_slices"):
 
     ecg.read_noise_data()
     ecg.__records_per_beat_type__ = 100
-    ecg.__splice_size_start__ = 2
-    ecg.__splice_size_end__ = 21
+    ecg.__splice_size_start__ = 10
+    ecg.__splice_size_end__ = 11
     ecg.__splice_size_step_size__ = 2
     ecg.__stepping_beat_position__ = False
     ecg.__num_noises__ = 2
@@ -129,15 +129,15 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
     os.makedirs(metric_path, exist_ok=True)
 
     for dirpath, subdir, filenames in os.walk(comp_data_path + "signal"):
-        print("Scanning: ", dirpath)
+       # print("Scanning: ", dirpath)
         if p.match(dirpath) and "RECORDS" in filenames:
-            print(dirpath, "confirmed")
+         #   print(dirpath, "confirmed")
             with open(os.path.join(dirpath, "RECORDS"), 'r') as f:
                 records = list(f.readlines())
             current_folder = dirpath.split(os.sep)[-1]
             typed_metrics = {}
             for r in records:
-                print("Processing", r)
+          #      print("Processing", r)
                 ann_file_name = os.path.join(comp_data_path + "annotations", r.rstrip('\n'))
                 ann_file_exists = os.path.exists(ann_file_name + '.atr') and os.path.isfile(
                     ann_file_name + '.atr')
@@ -150,30 +150,31 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
                         annotation = wfdb.rdann(ann_file_name, 'atr')
                         sample, meta = wfdb.rdsamp(rec_file_name, channels=[0])
                     except:
-                        print("Failed reading sample", r)
+                  #      print("Failed reading sample", r)
                         continue
                     # sample, meta = wfdb.rdsamp(rec_file_name, channels=[0])
                     rec_name = rec_file_name.split(os.sep)[-1]
 
                     # 150 is a restriction for some qrs detectors
                     if len(sample) > 150:
-                        print("Generating Metrics")
+           #             print("Generating Metrics")
                         for alg_name, alg_func in algs_with_name().items():
                             typed_metrics.setdefault(alg_name, {})
                             metric_file_name = metric_path + "/{}--{}--{}.dat".format(current_folder, alg_name,
                                                                                       metrics[-1].__abbrev__)
                             if os.path.isfile(metric_file_name):
-                                print("exists")
+                    #            print("exists")
                                 continue
                             typed_metrics.setdefault(alg_name, {})
-                            print(alg_name, "start")
+                    #        print(alg_name, "start")
                             if alg_name == "xqrs":
                                 # needed because xqrs sometimes hangs itself
+                                continue
                                 r_peaks = func_timeout(5, alg_func, args=(meta, rec_name, "", sample),
                                                        kwargs={"save": False})
                             else:
                                 r_peaks = alg_func(meta, rec_name, "", sample, save=False)
-                            print(alg_name, "end")
+                   #         print(alg_name, "end")
                             if len(r_peaks) == 0:
                                 eval_tuple = [annotation.sample[1]], [annotation.symbol[1]], [], meta['fs'], r[0]
                             else:
@@ -183,7 +184,7 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
                                 beat_type, metric = match_for_metric_on_data_part(eval_tuple, m)
                                 typed_metrics[alg_name].setdefault(m_idx, []).append(metric)
 
-            print("Saving Metrics per folder", current_folder)
+         #   print("Saving Metrics per folder", current_folder)
             for alg_name in typed_metrics:
                 for metric_idx in typed_metrics[alg_name]:
                     combined_metric = reduce(join, typed_metrics[alg_name][metric_idx])
@@ -199,12 +200,13 @@ if __name__ == "__main__":
     evaluation_speeds = []
     for idx in range(10):
         # 1.6 mil files
+        print(idx)
         start = time.time()
-        base_path = "../speed-test" + str(idx)+ "/"
-        create_all_data(base_path)
+        base_path = "../speed-test0/"
+        #create_all_data(base_path)
         creation_speeds.append(time.time() - start)
         start = time.time()
-        generate_predictions_with_metrics(base_path, "data/latex_data/speed-test" + str(idx),
+        generate_predictions_with_metrics(base_path, "data/latex_data/speed-test0",
                                           '.*[a-zA-Z]_[0-9.]+[a-zA-Z_]*[0-9_.]+.*')
         evaluation_speeds.append(time.time() - start)
         print(creation_speeds, evaluation_speeds)

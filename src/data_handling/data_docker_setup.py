@@ -89,7 +89,7 @@ class ECGData:
             if 'mimic3wdb' in dirpath:
                 continue
             if "RECORDS" in filenames:
-                print(dirpath, subdir)
+               # print(dirpath, subdir)
                 with open(os.path.join(dirpath, "RECORDS"), 'r') as f:
                     records = list(f.readlines())
                     for r in records:
@@ -149,7 +149,7 @@ class ECGData:
             return wfdb.rdann(ann_file_name, extension='ari')
 
     def process_record(self, dirpath, r):
-        print("processed", dirpath, r)
+        # print("processed", dirpath, r)
         ann_file_name = os.path.join(dirpath, r.rstrip('\n'))
         ann = self.read_ann_file(ann_file_name)
 
