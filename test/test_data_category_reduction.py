@@ -72,36 +72,44 @@ class TestLoadingData(unittest.TestCase):
         plt.show()
 
     def test_compute_representative_beat(self):
-        __num_samples__ = 10000
+        __num_samples__ = 5000
         beat_samples = self.read_data_per_type(__num_samples__)
 
         typed_uniform_beats, uniform_beats = self.equalize_length(beat_samples)
 
         typed_mean_beat = {}
         for label, beats in typed_uniform_beats.items():
+            print("saving", label)
             beats = np.nan_to_num(beats)
             beat = np.mean(beats, axis=0)
+            beat_plus = np.mean(beats, axis=0) + np.std(beats, axis=0)
+            beat_minus = np.mean(beats, axis=0) - np.std(beats, axis=0)
             new_beat = []
             if label == label.lower():
                 label += "-lower"
-            with open("data/latex_data/average-beat-{}.dat".format(label), "w") as beat_file:
-                beat_data = ""
-                prev_also_zero = False
-                for idx, point in enumerate(beat):
-                    if np.isclose(point, 0, 0.01):
-                        if prev_also_zero or idx == 0:
-                            prev_also_zero = True
-                            continue
-                        prev_also_zero = True
-                    else:
-                        prev_also_zero = False
-                    beat_data += "{} {}\n".format(idx, point)
-                    new_beat.append(point)
-                beat_file.write(beat_data)
+            self.save_average_beat(beat, label, new_beat)
+            self.save_average_beat(beat_plus, label + "-plus-std", [])
+            self.save_average_beat(beat_minus, label + "-minus-std", [])
             typed_mean_beat[label] = beat
             plt.plot(new_beat)
             plt.title(label + " mean beat")
             #plt.show()
+
+    def save_average_beat(self, beat, label, new_beat):
+        with open("data/latex_data/average-beats/average-beat-{}.dat".format(label), "w") as beat_file:
+            beat_data = ""
+            prev_also_zero = False
+            for idx, point in enumerate(beat):
+                if np.isclose(point, 0, 0.01):
+                    if prev_also_zero or idx == 0:
+                        prev_also_zero = True
+                        continue
+                    prev_also_zero = True
+                else:
+                    prev_also_zero = False
+                beat_data += "{} {}\n".format(idx, point)
+                new_beat.append(point)
+            beat_file.write(beat_data)
 
     def equalize_length(self, beat_samples):
         uniform_beats = []
@@ -143,8 +151,8 @@ class TestLoadingData(unittest.TestCase):
                             continue
 
                         for ann_idx, (label, beat) in enumerate(zip(ann_sym.symbol, ann_sym.sample)):
-                            too_few_beats_for_label = (
-                                        label not in beat_samples or len(beat_samples[label]) < __num_samples__)
+                            too_few_beats_for_label = \
+                                (label not in beat_samples or len(beat_samples[label]) < __num_samples__)
                             if too_few_beats_for_label and label in BEAT_CODE_DESCRIPTIONS:
                                 sample, meta = wfdb.rdsamp(ann_file_name, channels=[0])
 
