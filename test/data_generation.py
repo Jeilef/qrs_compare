@@ -37,12 +37,12 @@ def create_all_data(base_path="../comparison_data_large_slices"):
                   base_path + "/annotations", min_noise=1, max_noise=1, num_noise=1)
 
     ecg.read_noise_data()
-    ecg.__records_per_beat_type__ = 100
-    ecg.__splice_size_start__ = 10
-    ecg.__splice_size_end__ = 11
+    ecg.__records_per_beat_type__ = 100000
+    ecg.__splice_size_start__ = 15
+    ecg.__splice_size_end__ = 16
     ecg.__splice_size_step_size__ = 2
     ecg.__stepping_beat_position__ = False
-    ecg.__num_noises__ = 2
+    ecg.__num_noises__ = 3
     ecg.setup_evaluation_data()
     print("failed writes: ", ecg.failed_writes)
 
@@ -169,7 +169,6 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
                     #        print(alg_name, "start")
                             if alg_name == "xqrs":
                                 # needed because xqrs sometimes hangs itself
-                                continue
                                 r_peaks = func_timeout(5, alg_func, args=(meta, rec_name, "", sample),
                                                        kwargs={"save": False})
                             else:
@@ -194,25 +193,8 @@ def generate_predictions_with_metrics(comp_data_path="../comparison_data_noise/"
 
 
 if __name__ == "__main__":
+    base_path = "only-mit-bih"
     # generate_predictions("data/algorithm_prediction/", "../comparison_data/")
+    create_all_data(base_path)
+    generate_predictions_with_metrics(base_path, "data/latex_data/only-mit-bih", '.*[a-zA-Z]_[0-9.]+[a-zA-Z_]*[0-9_.]+.*')
 
-    creation_speeds = []
-    evaluation_speeds = []
-    for idx in range(10):
-        # 1.6 mil files
-        print(idx)
-        start = time.time()
-        base_path = "../speed-test0/"
-        #create_all_data(base_path)
-        creation_speeds.append(time.time() - start)
-        start = time.time()
-        generate_predictions_with_metrics(base_path, "data/latex_data/speed-test0",
-                                          '.*[a-zA-Z]_[0-9.]+[a-zA-Z_]*[0-9_.]+.*')
-        evaluation_speeds.append(time.time() - start)
-        print(creation_speeds, evaluation_speeds)
-
-    with open("data/speed-test.dat", "w") as speed_test_file:
-        c_speeds = "\n".join(list(map(str, creation_speeds)))
-        e_speeds = "\n".join(list(map(str, evaluation_speeds)))
-        file_content = "creation:\n" + c_speeds + "\n\nevaluation:\n" + e_speeds
-        speed_test_file.write(file_content)

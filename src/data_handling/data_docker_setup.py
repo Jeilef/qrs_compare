@@ -51,6 +51,8 @@ class ECGData:
 
     def read_all_available_data(self):
         for dirpath, subdir, filenames in os.walk(self.__base_data_path__):
+            if not "mitdb" in dirpath:
+                continue
             if 'mimic3wdb' in dirpath:
                 continue
             if "RECORDS" in filenames:

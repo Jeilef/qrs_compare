@@ -72,7 +72,7 @@ class TestLoadingData(unittest.TestCase):
         plt.show()
 
     def test_compute_representative_beat(self):
-        __num_samples__ = 5000
+        __num_samples__ = 10000
         beat_samples = self.read_data_per_type(__num_samples__)
 
         typed_uniform_beats, uniform_beats = self.equalize_length(beat_samples)
